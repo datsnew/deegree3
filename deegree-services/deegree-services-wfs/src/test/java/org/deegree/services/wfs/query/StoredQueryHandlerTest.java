@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2014 by:
@@ -35,102 +34,367 @@
  ----------------------------------------------------------------------------*/
 package org.deegree.services.wfs.query;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.apache.commons.io.IOUtils;
+import org.deegree.commons.ows.exception.OWSException;
+import org.deegree.feature.types.FeatureType;
+import org.deegree.protocol.wfs.storedquery.CreateStoredQuery;
+import org.deegree.protocol.wfs.storedquery.DropStoredQuery;
+import org.deegree.protocol.wfs.storedquery.QueryExpressionText;
+import org.deegree.protocol.wfs.storedquery.StoredQueryDefinition;
+import org.deegree.services.controller.utils.HttpResponseBuffer;
+import org.deegree.services.wfs.WebFeatureService;
+import org.deegree.services.wfs.WfsFeatureStoreManager;
+import org.junit.Before;
+import org.junit.Test;
+import org.xmlunit.matchers.HasXPathMatcher;
 
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import javax.xml.namespace.QName;
-
-import org.deegree.feature.types.FeatureType;
-import org.deegree.services.wfs.WebFeatureService;
-import org.deegree.services.wfs.WfsFeatureStoreManager;
-import org.junit.Test;
+import static org.deegree.protocol.wfs.WFSConstants.VERSION_200;
+import static org.deegree.protocol.wfs.WFSConstants.WFS_200_NS;
+import static org.deegree.services.wfs.query.StoredQueryHandler.GET_FEATURE_BY_ID;
+import static org.deegree.services.wfs.query.StoredQueryHandler.GET_FEATURE_BY_TYPE;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.xmlunit.matchers.HasXPathMatcher.hasXPath;
 
 /**
  * @author <a href="mailto:goltz@lat-lon.de">Lyn Goltz</a>
  */
 public class StoredQueryHandlerTest {
 
-    @Test
-    public void testCollectAndSortFeatureTypesToExport_AllFeatureTypes() {
-        List<FeatureType> featureTypes = featureTypes();
-        StoredQueryHandler storedQueryHandler = new StoredQueryHandler( mockWFS( featureTypes ), new ArrayList<URL>() );
+	private static File managedStoredQueries;
 
-        List<QName> configuredFeatureTypeNames = Collections.emptyList();
-        List<QName> featureTypeNamesToExport = storedQueryHandler.collectAndSortFeatureTypesToExport( configuredFeatureTypeNames );
+	@Before
+	public void createManagedStoredQueriesDirectory() throws IOException {
+		managedStoredQueries = Files.createTempDirectory("managedStoredQueries").toFile();
+		managedStoredQueries.deleteOnExit();
+	}
 
-        assertThat( featureTypeNamesToExport.size(), is( featureTypes.size() ) );
-        for ( FeatureType featureType : featureTypes ) {
-            assertThat( featureTypeNamesToExport, hasItems( featureType.getName() ) );
-        }
-    }
+	@Test
+	public void testCollectAndSortFeatureTypesToExport_AllFeatureTypes() {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
 
-    @Test
-    public void testCollectAndSortFeatureTypesToExport_EmptyFeatureTypeList() {
-        List<FeatureType> featureTypes = Collections.emptyList();
-        StoredQueryHandler storedQueryHandler = new StoredQueryHandler( mockWFS( featureTypes ), new ArrayList<URL>() );
+		List<QName> configuredFeatureTypeNames = Collections.emptyList();
+		List<QName> featureTypeNamesToExport = storedQueryHandler
+			.collectAndSortFeatureTypesToExport(configuredFeatureTypeNames);
 
-        List<QName> configuredFeatureTypeNames = Collections.emptyList();
-        List<QName> featureTypeNamesToExport = storedQueryHandler.collectAndSortFeatureTypesToExport( configuredFeatureTypeNames );
+		assertThat(featureTypeNamesToExport.size(), is(featureTypes.size()));
+		for (FeatureType featureType : featureTypes) {
+			assertThat(featureTypeNamesToExport, hasItems(featureType.getName()));
+		}
+	}
 
-        assertThat( featureTypeNamesToExport.size(), is( 0 ) );
-    }
+	@Test
+	public void testCollectAndSortFeatureTypesToExport_EmptyFeatureTypeList() {
+		List<FeatureType> featureTypes = Collections.emptyList();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
 
-    @Test
-    public void testCollectAndSortFeatureTypesToExport_LimitedConfiguredFeatureTypes() {
-        List<FeatureType> featureTypes = featureTypes();
-        StoredQueryHandler storedQueryHandler = new StoredQueryHandler( mockWFS( featureTypes ), new ArrayList<URL>() );
+		List<QName> configuredFeatureTypeNames = Collections.emptyList();
+		List<QName> featureTypeNamesToExport = storedQueryHandler
+			.collectAndSortFeatureTypesToExport(configuredFeatureTypeNames);
 
-        List<QName> configuredFeatureTypeNames = configuredFeatureTypeNames();
-        List<QName> featureTypeNamesToExport = storedQueryHandler.collectAndSortFeatureTypesToExport( configuredFeatureTypeNames );
+		assertThat(featureTypeNamesToExport.size(), is(0));
+	}
 
-        assertThat( featureTypeNamesToExport.size(), is( 1 ) );
+	@Test
+	public void testCollectAndSortFeatureTypesToExport_LimitedConfiguredFeatureTypes() {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
 
-        QName featureTypeNameToExport = featureTypeNamesToExport.get( 0 );
-        assertThat( featureTypeNameToExport.getLocalPart(), is( "one" ) );
-        assertThat( featureTypeNameToExport.getNamespaceURI(), is( "" ) );
-        assertThat( featureTypeNameToExport.getPrefix(), is( "" ) );
-    }
+		List<QName> configuredFeatureTypeNames = configuredFeatureTypeNames();
+		List<QName> featureTypeNamesToExport = storedQueryHandler
+			.collectAndSortFeatureTypesToExport(configuredFeatureTypeNames);
 
-    private List<FeatureType> featureTypes() {
-        List<FeatureType> featureTypes = new ArrayList<FeatureType>();
-        featureTypes.add( mockFeatureType( "one" ) );
-        featureTypes.add( mockFeatureType( "two" ) );
-        return featureTypes;
-    }
+		assertThat(featureTypeNamesToExport.size(), is(1));
 
-    private List<QName> configuredFeatureTypeNames() {
-        List<QName> configuredFeatureTypes = new ArrayList<QName>();
-        configuredFeatureTypes.add( new QName( "one" ) );
-        return configuredFeatureTypes;
-    }
+		QName featureTypeNameToExport = featureTypeNamesToExport.get(0);
+		assertThat(featureTypeNameToExport.getLocalPart(), is("one"));
+		assertThat(featureTypeNameToExport.getNamespaceURI(), is(""));
+		assertThat(featureTypeNameToExport.getPrefix(), is(""));
+	}
 
-    private FeatureType mockFeatureType( String name ) {
-        FeatureType mockedFeatureType = mock( FeatureType.class );
-        QName qName = new QName( name );
-        when( mockedFeatureType.getName() ).thenReturn( qName );
-        return mockedFeatureType;
-    }
+	@Test
+	public void testInitManagedContainsFixedStoredQueries() {
 
-    private WebFeatureService mockWFS( Collection<FeatureType> featureTypes ) {
-        WebFeatureService mockedWfs = mock( WebFeatureService.class );
-        WfsFeatureStoreManager mockedStoreManager = mockStoreManager( featureTypes );
-        when( mockedWfs.getStoreManager() ).thenReturn( mockedStoreManager );
-        return mockedWfs;
-    }
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
 
-    private WfsFeatureStoreManager mockStoreManager( Collection<FeatureType> featureTypes ) {
-        WfsFeatureStoreManager mockedStoreManager = mock( WfsFeatureStoreManager.class );
-        when( mockedStoreManager.getFeatureTypes() ).thenReturn( featureTypes );
-        return mockedStoreManager;
-    }
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_ID), is(true));
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_TYPE), is(true));
+	}
+
+	@Test
+	public void testInitManagedWitNullManagedStoredQueryDirectory() {
+		List<FeatureType> featureTypes = featureTypes();
+
+		new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(), null);
+	}
+
+	@Test
+	public void testInitManagedWithoutExistingManagedStoredQueryDirectoryThrowsException() {
+		List<FeatureType> featureTypes = featureTypes();
+
+		new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(), new File("this/directory/does/not/exist"));
+	}
+
+	@Test
+	public void testInitManagedStoredQueries() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+
+		File managedStoredQueries = Files.createTempDirectory("managedStoredQueries").toFile();
+		OutputStream output = new FileOutputStream(new File(managedStoredQueries, "storedQuery_byName.xml"));
+		InputStream resourceAsStream = StoredQueryHandlerTest.class.getResourceAsStream("storedQuery_byName.xml");
+		IOUtils.copy(resourceAsStream, output);
+		resourceAsStream.close();
+		output.close();
+
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_ID), is(true));
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_TYPE), is(true));
+		assertThat(storedQueryHandler.hasStoredQuery("ByName"), is(true));
+	}
+
+	@Test
+	public void testInitErroneousManagedStoredQueries() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+
+		File managedStoredQueries = Files.createTempDirectory("managedStoredQueries").toFile();
+		OutputStream output = new FileOutputStream(new File(managedStoredQueries, "storedQuery_erroneous.xml"));
+		InputStream resourceAsStream = StoredQueryHandlerTest.class.getResourceAsStream("storedQuery_erroneous.xml");
+		IOUtils.copy(resourceAsStream, output);
+		resourceAsStream.close();
+		output.close();
+
+		new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(), managedStoredQueries);
+	}
+
+	@Test
+	public void testDoCreateStoredQuery() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		String id = "mangedStoredQuery";
+		CreateStoredQuery request = createStoredQuery(id);
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+
+		assertThat(storedQueryHandler.hasStoredQuery(id), is(true));
+		assertThat(outStream.toString(),
+				hasXPath("/wfs:CreateStoredQueryResponse[@status='OK']").withNamespaceContext(nsContext()));
+	}
+
+	@Test(expected = OWSException.class)
+	public void testDoCreateStoredQuery_NullManagedStoredQueryDirectory() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				null);
+
+		String id = "mangedStoredQuery";
+		CreateStoredQuery request = createStoredQuery(id);
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+	}
+
+	@Test(expected = OWSException.class)
+	public void testDoCreateStoredQuery_NotExistingManagedStoredQueryDirectory() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				new File("this/directory/does/not/exist"));
+
+		String id = "mangedStoredQuery";
+		CreateStoredQuery request = createStoredQuery(id);
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+	}
+
+	@Test(expected = OWSException.class)
+	public void testDoCreateStoredQuery_DuplicateId() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		String id = "mangedStoredQuery";
+		CreateStoredQuery request = createStoredQuery(id);
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		try {
+			storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+			storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		}
+		finally {
+			xmlStreamWriter.close();
+		}
+	}
+
+	@Test(expected = OWSException.class)
+	public void testDoCreateStoredQuery_UnsupportedLanguage() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		String id = "mangedStoredQuery";
+		CreateStoredQuery request = createStoredQuery(id, "http://qry.example.org");
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+	}
+
+	@Test
+	public void testDoDropStoredQuery() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		String id = "mangedStoredQuery";
+		insertStoredQuery(storedQueryHandler, id);
+
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doDropStoredQuery(dropStoredQuery(id), mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+
+		assertThat(storedQueryHandler.hasStoredQuery(id), is(false));
+		assertThat(outStream.toString(), HasXPathMatcher.hasXPath("/wfs:DropStoredQueryResponse[@status='OK']")
+			.withNamespaceContext(nsContext()));
+	}
+
+	@Test
+	public void testDoDropStoredQuery_Unremovable() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		try {
+			ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+			XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+			storedQueryHandler.doDropStoredQuery(dropStoredQuery(GET_FEATURE_BY_ID),
+					mockHttpResponseBuffer(xmlStreamWriter));
+			xmlStreamWriter.close();
+		}
+		catch (Exception e) {
+		}
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_ID), is(true));
+	}
+
+	@Test(expected = OWSException.class)
+	public void testDoDropStoredQuery_Unremovable_Exception() throws Exception {
+		List<FeatureType> featureTypes = featureTypes();
+		StoredQueryHandler storedQueryHandler = new StoredQueryHandler(mockWFS(featureTypes), new ArrayList<URL>(),
+				managedStoredQueries);
+
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doDropStoredQuery(dropStoredQuery(GET_FEATURE_BY_ID),
+				mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+
+		assertThat(storedQueryHandler.hasStoredQuery(GET_FEATURE_BY_ID), is(true));
+	}
+
+	private void insertStoredQuery(StoredQueryHandler storedQueryHandler, String id) throws Exception {
+		CreateStoredQuery request = createStoredQuery(id);
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(outStream);
+		storedQueryHandler.doCreateStoredQuery(request, mockHttpResponseBuffer(xmlStreamWriter));
+		xmlStreamWriter.close();
+	}
+
+	private CreateStoredQuery createStoredQuery(String id) {
+		return createStoredQuery(id, StoredQueryHandler.LANGUAGE_WFS_QUERY_EXPRESSION);
+	}
+
+	private CreateStoredQuery createStoredQuery(String id, String language) {
+		List<StoredQueryDefinition> queryDefinitions = new ArrayList<StoredQueryDefinition>();
+		StoredQueryDefinition queryDefinition = mock(StoredQueryDefinition.class);
+		when(queryDefinition.getId()).thenReturn(id);
+		queryDefinitions.add(queryDefinition);
+		List<QueryExpressionText> queryExpressionTexts = new ArrayList<QueryExpressionText>();
+		QueryExpressionText queryExpressionText = mock(QueryExpressionText.class);
+		when(queryExpressionText.getLanguage()).thenReturn(language);
+		queryExpressionTexts.add(queryExpressionText);
+		when(queryDefinition.getQueryExpressionTextEls()).thenReturn(queryExpressionTexts);
+		return new CreateStoredQuery(VERSION_200, "handle", queryDefinitions);
+	}
+
+	private DropStoredQuery dropStoredQuery(String id) {
+		return new DropStoredQuery(VERSION_200, "handle", id);
+	}
+
+	private List<FeatureType> featureTypes() {
+		List<FeatureType> featureTypes = new ArrayList<FeatureType>();
+		featureTypes.add(mockFeatureType("one"));
+		featureTypes.add(mockFeatureType("two"));
+		return featureTypes;
+	}
+
+	private List<QName> configuredFeatureTypeNames() {
+		List<QName> configuredFeatureTypes = new ArrayList<QName>();
+		configuredFeatureTypes.add(new QName("one"));
+		return configuredFeatureTypes;
+	}
+
+	private FeatureType mockFeatureType(String name) {
+		FeatureType mockedFeatureType = mock(FeatureType.class);
+		QName qName = new QName(name);
+		when(mockedFeatureType.getName()).thenReturn(qName);
+		return mockedFeatureType;
+	}
+
+	private WebFeatureService mockWFS(Collection<FeatureType> featureTypes) {
+		WebFeatureService mockedWfs = mock(WebFeatureService.class);
+		WfsFeatureStoreManager mockedStoreManager = mockStoreManager(featureTypes);
+		when(mockedWfs.getStoreManager()).thenReturn(mockedStoreManager);
+		return mockedWfs;
+	}
+
+	private WfsFeatureStoreManager mockStoreManager(Collection<FeatureType> featureTypes) {
+		WfsFeatureStoreManager mockedStoreManager = mock(WfsFeatureStoreManager.class);
+		when(mockedStoreManager.getFeatureTypes()).thenReturn(featureTypes);
+		return mockedStoreManager;
+	}
+
+	private HttpResponseBuffer mockHttpResponseBuffer(XMLStreamWriter xmlStreamWriter) throws Exception {
+		HttpResponseBuffer mockedResponse = mock(HttpResponseBuffer.class);
+		when(mockedResponse.getXMLWriter(anyBoolean())).thenReturn(xmlStreamWriter);
+		return mockedResponse;
+	}
+
+	private java.util.Map<String, String> nsContext() {
+		return Collections.singletonMap("wfs", WFS_200_NS);
+	}
 
 }

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deegreeServicesMetadata xmlns="http://www.deegree.org/services/metadata"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.deegree.org/services/metadata https://schemas.deegree.org/core/3.5/services/metadata/metadata.xsd">
+  <!--
+    General service information for all services. Used in the GetCapabilities
+    responses.
+  -->
+
+  <ServiceIdentification>
+    <Title>deegree WFS metadata</Title>
+    <Abstract>This is the default deegree WFS configuration</Abstract>
+    <Keywords>
+      <Keyword lang="en">OGC services</Keyword>
+      <Keyword lang="en">deegree</Keyword>
+    </Keywords>
+    <Fees>None</Fees>
+    <AccessConstraints>None</AccessConstraints>
+    <AccessConstraints>24x7</AccessConstraints>
+  </ServiceIdentification>
+  <ServiceProvider>
+    <ProviderName>deegree</ProviderName>
+    <ProviderSite>http://www.deegree.org</ProviderSite>
+    <ServiceContact>
+      <IndividualName>Gerhard Mercator</IndividualName>
+      <PositionName>Geographer</PositionName>
+      <Phone>0000/000000</Phone>
+      <Facsimile>0000/000000</Facsimile>
+      <ElectronicMailAddress>info@example.com</ElectronicMailAddress>
+      <Address>
+        <DeliveryPoint>9450 SW Gemini Dr #42523</DeliveryPoint>
+        <City>Beaverton</City>
+        <AdministrativeArea>OR</AdministrativeArea>
+        <PostalCode>97008</PostalCode>
+        <Country>USA</Country>
+      </Address>
+      <OnlineResource>http://www.deegree.org</OnlineResource>
+      <HoursOfService>24x7</HoursOfService>
+      <ContactInstructions>Don't hesitate to email</ContactInstructions>
+      <Role>PointOfContact</Role>
+    </ServiceContact>
+  </ServiceProvider>
+</deegreeServicesMetadata>

@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2010 by:
@@ -50,66 +49,62 @@ import java.util.Iterator;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 
-import org.apache.commons.pool.PoolableObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 /**
- * <code>ImageReaderFactory</code>: an object factory for commons-pool. It should really be replaced with a better
- * solution, not using generics here (and throwing Exception) is not the way to go...
- * 
+ * <code>ImageReaderFactory</code>: an object factory for Apache commons-pool providing
+ * file-based image reader.
+ *
  * @author <a href="mailto:schmitz@occamlabs.de">Andreas Schmitz</a>
- * @author last edited by: $Author: mschneider $
- * 
- * @version $Revision: 31882 $, $Date: 2011-09-15 02:05:04 +0200 (Thu, 15 Sep 2011) $
+ * @author <a href="mailto:friebe@lat-lon.de">Torsten Friebe</a>
+ *
  */
+public class ImageReaderFactory implements PooledObjectFactory<ImageReader> {
 
-public class ImageReaderFactory implements PoolableObjectFactory {
+	private final File file;
 
-    private File file;
+	public ImageReaderFactory(File file) {
+		this.file = file;
+	}
 
-    public ImageReaderFactory( File file ) {
-        this.file = file;
-    }
+	@Override
+	public void destroyObject(PooledObject<ImageReader> pooledObject) throws Exception {
+		ImageReader reader = (ImageReader) pooledObject;
+		reader.dispose();
+	}
 
-    @Override
-    public void activateObject( Object o )
-                            throws Exception {
-        // nothing to do
-    }
+	@Override
+	public boolean validateObject(PooledObject<ImageReader> pooledObject) {
+		// ImageReader reader = (ImageReader) o;
+		// ImageInputStream iis = (ImageInputStream) reader.getInput();
+		// unknown if we need something here, so far no readers have become invalid
+		return true;
+	}
 
-    @Override
-    public void destroyObject( Object o )
-                            throws Exception {
-        ImageReader reader = (ImageReader) o;
-        reader.dispose();
-    }
+	@Override
+	public void activateObject(PooledObject<ImageReader> pooledObject) throws Exception {
+		// nothing to do
+	}
 
-    @Override
-    public Object makeObject()
-                            throws Exception {
-        ImageInputStream iis = null;
-        ImageReader reader = null;
-        Iterator<ImageReader> readers = getImageReadersBySuffix( "tiff" );
-        while ( readers.hasNext() && !( reader instanceof TIFFImageReader ) ) {
-            reader = readers.next();
-        }
-        iis = createImageInputStream( file );
-        // already checked in provider
-        reader.setInput( iis );
-        return reader;
-    }
+	@Override
+	public void passivateObject(PooledObject<ImageReader> pooledObject) throws Exception {
+		// nothing to do
+	}
 
-    @Override
-    public void passivateObject( Object o )
-                            throws Exception {
-        // nothing to do
-    }
-
-    @Override
-    public boolean validateObject( Object o ) {
-        // ImageReader reader = (ImageReader) o;
-        // ImageInputStream iis = (ImageInputStream) reader.getInput();
-        // unknown if we need something here, so far no readers have become invalid
-        return true;
-    }
+	@Override
+	public PooledObject<ImageReader> makeObject() throws Exception {
+		ImageInputStream iis = null;
+		ImageReader reader = null;
+		Iterator<ImageReader> readers = getImageReadersBySuffix("tiff");
+		while (readers.hasNext() && !(reader instanceof TIFFImageReader)) {
+			reader = readers.next();
+		}
+		iis = createImageInputStream(file);
+		// already checked in provider
+		reader.setInput(iis);
+		return new DefaultPooledObject<ImageReader>(reader);
+	}
 
 }

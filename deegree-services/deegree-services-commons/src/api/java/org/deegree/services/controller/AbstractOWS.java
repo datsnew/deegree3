@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2009 by:
@@ -87,9 +86,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider </a>
  * @author <a href="mailto:bezema@lat-lon.de">Rutger Bezema </a>
- * @author last edited by: $Author:$
  * 
- * @version $Revision:$, $Date:$
  */
 public abstract class AbstractOWS implements OWS {
 
@@ -291,34 +288,6 @@ public abstract class AbstractOWS implements OWS {
     }
 
     /**
-     * @param confFileURL
-     * @param configVersionString
-     * @throws ResourceInitException
-     */
-    protected void checkConfigVersion( String confFileURL, String configVersionString )
-                            throws ResourceInitException {
-
-        Version configVersion = Version.parseVersion( configVersionString );
-        if ( !( (OWSProvider) metadata.getProvider() ).getImplementationMetadata().getSupportedConfigVersions().contains( configVersion ) ) {
-            LOG.error( "" );
-            LOG.error( "*** Configuration version mismatch ***", confFileURL );
-            LOG.error( "" );
-            StringBuilder msg = new StringBuilder( "File uses config version " ).append( configVersion );
-            msg.append( ", but this deegree build only supports version(s): " );
-            boolean separatorNeeded = false;
-            for ( Version supportedVersion : ( (OWSProvider) metadata.getProvider() ).getImplementationMetadata().getSupportedConfigVersions() ) {
-                msg.append( supportedVersion );
-                if ( separatorNeeded ) {
-                    msg.append( "," );
-                }
-                separatorNeeded = true;
-            }
-            msg.append( " for this file type. Information on resolving this issue can be found at 'http://wiki.deegree.org/deegreeWiki/deegree3/ConfigurationVersions'. " );
-            throw new ResourceInitException( msg.toString() );
-        }
-    }
-
-    /**
      * Generic version negotiation algorithm for {@link GetCapabilities} requests according to OWS Common Specification
      * 1.1.0 (OGC 06-121r3), section 7.3.2 and D.11.
      * 
@@ -449,7 +418,6 @@ public abstract class AbstractOWS implements OWS {
                 LOG.error( "An error occurred while trying to send an exception: " + e.getLocalizedMessage(), e );
                 throw new ServletException( e );
             }
-            response.setExceptionSent();
         }
 
         if ( userAgent != null && userAgent.toLowerCase().contains( "mozilla" ) ) {
@@ -501,7 +469,7 @@ public abstract class AbstractOWS implements OWS {
         Map<String, String> extraHeaders = new HashMap<String, String>();
         SOAPVersion version = factory.getSOAPVersion();
         String action = "";
-        if ( SOAPaction != null && "".equals( SOAPaction ) ) {
+        if ("".equals(SOAPaction)) {
             action = SOAPaction;
         }
 

@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2011 by:
@@ -41,12 +40,14 @@ import static org.deegree.protocol.wfs.WFSVersion.WFS_110;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import javax.xml.namespace.QName;
 
 import org.deegree.commons.tom.gml.GMLObject;
+import org.deegree.commons.utils.Pair;
 import org.deegree.cs.coordinatesystems.ICRS;
 import org.deegree.feature.Feature;
 import org.deegree.feature.FeatureCollection;
@@ -79,260 +80,277 @@ import org.deegree.workspace.ResourceMetadata;
 
 /**
  * {@link FeatureStore} implementation that is backed by a (remote) WFS instance.
- * 
+ *
  * @see FeatureStore
  * @see WFSClient
- * 
  * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
  */
 public class RemoteWFSFeatureStore implements FeatureStore {
 
-    // private static final Logger LOG = LoggerFactory.getLogger( RemoteWFSFeatureStore.class );
-    //
-    // private final RemoteWFSFeatureStoreConfig config;
+	// private static final Logger LOG = LoggerFactory.getLogger(
+	// RemoteWFSFeatureStore.class );
+	//
+	// private final RemoteWFSFeatureStoreConfig config;
 
-    private WFSClient client;
+	private WFSClient client;
 
-    private AppSchema appSchema;
+	private AppSchema appSchema;
 
-    /**
-     * Creates a new {@link RemoteWFSFeatureStore} for the given capabilities URL.
-     * 
-     * @param config
-     *            config, must not be <code>null</code>
-     */
-    RemoteWFSFeatureStore( RemoteWFSFeatureStoreConfig config ) {
-        // this.config = config;
-    }
+	private boolean strict;
 
-    // @Override
-    // public void init( DeegreeWorkspace workspace )
-    // throws ResourceInitException {
-    // try {
-    // LOG.info( "Connecting to " + config.getCapabilitiesURL() + "..." );
-    // this.client = new WFSClient( new URL( config.getCapabilitiesURL() ) );
-    // this.appSchema = client.getAppSchema();
-    // LOG.info( "Ok." );
-    // } catch ( Exception e ) {
-    // LOG.info( "Error: " + e.getMessage() );
-    // throw new ResourceInitException( "Error connecting to WFS: " + e.getMessage(), e );
-    // }
-    // }
+	/**
+	 * Creates a new {@link RemoteWFSFeatureStore} for the given capabilities URL.
+	 * @param config config, must not be <code>null</code>
+	 */
+	RemoteWFSFeatureStore(RemoteWFSFeatureStoreConfig config) {
+		// this.config = config;
+	}
 
-    @Override
-    public void destroy() {
-        // TODO Auto-generated method stub
-    }
+	// @Override
+	// public void init( DeegreeWorkspace workspace )
+	// throws ResourceInitException {
+	// try {
+	// LOG.info( "Connecting to " + config.getCapabilitiesURL() + "..." );
+	// this.client = new WFSClient( new URL( config.getCapabilitiesURL() ) );
+	// this.appSchema = client.getAppSchema();
+	// LOG.info( "Ok." );
+	// } catch ( Exception e ) {
+	// LOG.info( "Error: " + e.getMessage() );
+	// throw new ResourceInitException( "Error connecting to WFS: " + e.getMessage(), e );
+	// }
+	// }
 
-    @Override
-    public boolean isAvailable() {
-        return true;
-    }
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+	}
 
-    @Override
-    public AppSchema getSchema() {
-        return appSchema;
-    }
+	@Override
+	public boolean isAvailable() {
+		return true;
+	}
 
-    @Override
-    public boolean isMapped( QName ftName ) {
-        return appSchema.getFeatureType( ftName ) != null;
-    }
+	@Override
+	public AppSchema getSchema() {
+		return appSchema;
+	}
 
-    @Override
-    public Envelope getEnvelope( QName ftName )
-                            throws FeatureStoreException {
-        WFSFeatureType ftMetadata = client.getFeatureType( ftName );
-        if ( ftMetadata == null ) {
-            return null;
-        }
-        return ftMetadata.getWGS84BoundingBox();
-    }
+	@Override
+	public boolean isMapped(QName ftName) {
+		return appSchema.getFeatureType(ftName) != null;
+	}
 
-    @Override
-    public Envelope calcEnvelope( QName ftName )
-                            throws FeatureStoreException {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	@Override
+	public boolean isMaxFeaturesAndStartIndexApplicable(Query[] queries) {
+		return false;
+	}
 
-    @Override
-    public FeatureInputStream query( Query query )
-                            throws FeatureStoreException, FilterEvaluationException {
+	@Override
+	public Envelope getEnvelope(QName ftName) throws FeatureStoreException {
+		WFSFeatureType ftMetadata = client.getFeatureType(ftName);
+		if (ftMetadata == null) {
+			return null;
+		}
+		return ftMetadata.getWGS84BoundingBox();
+	}
 
-        org.deegree.protocol.wfs.query.Query wfsQuery = toWFSQuery( query );
+	@Override
+	public Envelope calcEnvelope(QName ftName) throws FeatureStoreException {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-        StandardPresentationParams presentationParams = new StandardPresentationParams( null, null, ResultType.RESULTS,
-                                                                                        GML_31.getMimeType() );
-        GetFeature request = new GetFeature( WFS_110.getOGCVersion(), null, presentationParams, null,
-                                             Collections.singletonList( wfsQuery ) );
+	@Override
+	public Pair<Date, Date> getTemporalExtent(QName ftName, QName datetimeProperty) throws FeatureStoreException {
+		return null;
+	}
 
-        FeatureInputStream is = null;
-        try {
-            final GetFeatureResponse<Feature> response = client.doGetFeature( request );
-            final WFSFeatureCollection<Feature> wfsFc = response.getAsWFSFeatureCollection();
-            is = new FeatureInputStream() {
+	@Override
+	public Pair<Date, Date> calcTemporalExtent(QName ftName, QName datetimeProperty) throws FeatureStoreException {
+		return null;
+	}
 
-                @Override
-                public Iterator<Feature> iterator() {
-                    return wfsFc.getMembers();
-                }
+	@Override
+	public ICRS getStorageCrs() {
+		return null;
+	}
 
-                @Override
-                public FeatureCollection toCollection() {
-                    return wfsFc.toCollection();
-                }
+	@Override
+	public FeatureInputStream query(Query query) throws FeatureStoreException, FilterEvaluationException {
 
-                @Override
-                public int count() {
-                    // TODO
-                    return 0;
-                }
+		org.deegree.protocol.wfs.query.Query wfsQuery = toWFSQuery(query);
 
-                @Override
-                public void close() {
-                    try {
-                        response.close();
-                    } catch ( IOException e ) {
-                        throw new RuntimeException( e.getMessage(), e );
-                    }
-                }
-            };
-        } catch ( OWSExceptionReport e ) {
-            throw new FeatureStoreException( "Remote WFS responded with exception report: " + e.getMessage() );
-        } catch ( Throwable t ) {
-            throw new FeatureStoreException( "Error performing GetFeature request to remote WFS: " + t.getMessage() );
-        }
+		StandardPresentationParams presentationParams = new StandardPresentationParams(null, null, ResultType.RESULTS,
+				GML_31.getMimeType());
+		GetFeature request = new GetFeature(WFS_110.getOGCVersion(), null, presentationParams, null,
+				Collections.singletonList(wfsQuery));
 
-        return is;
-    }
+		FeatureInputStream is = null;
+		try {
+			final GetFeatureResponse<Feature> response = client.doGetFeature(request);
+			final WFSFeatureCollection<Feature> wfsFc = response.getAsWFSFeatureCollection();
+			is = new FeatureInputStream() {
 
-    @Override
-    public FeatureInputStream query( final Query[] queries )
-                            throws FeatureStoreException, FilterEvaluationException {
-        Iterator<FeatureInputStream> rsIter = new Iterator<FeatureInputStream>() {
-            int i = 0;
+				@Override
+				public Iterator<Feature> iterator() {
+					return wfsFc.getMembers();
+				}
 
-            @Override
-            public boolean hasNext() {
-                return i < queries.length;
-            }
+				@Override
+				public FeatureCollection toCollection() {
+					return wfsFc.toCollection();
+				}
 
-            @Override
-            public FeatureInputStream next() {
-                if ( !hasNext() ) {
-                    throw new NoSuchElementException();
-                }
-                FeatureInputStream rs;
-                try {
-                    rs = query( queries[i++] );
-                } catch ( Exception e ) {
-                    e.printStackTrace();
-                    throw new RuntimeException( e.getMessage(), e );
-                }
-                return rs;
-            }
+				@Override
+				public int count() {
+					// TODO
+					return 0;
+				}
 
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-        return new CombinedFeatureInputStream( rsIter );
-    }
+				@Override
+				public void close() {
+					try {
+						response.close();
+					}
+					catch (IOException e) {
+						throw new RuntimeException(e.getMessage(), e);
+					}
+				}
+			};
+		}
+		catch (OWSExceptionReport e) {
+			throw new FeatureStoreException("Remote WFS responded with exception report: " + e.getMessage());
+		}
+		catch (Throwable t) {
+			throw new FeatureStoreException("Error performing GetFeature request to remote WFS: " + t.getMessage());
+		}
 
-    @Override
-    public int queryHits( Query query )
-                            throws FeatureStoreException, FilterEvaluationException {
+		return is;
+	}
 
-        org.deegree.protocol.wfs.query.Query wfsQuery = toWFSQuery( query );
+	@Override
+	public FeatureInputStream query(final Query[] queries) throws FeatureStoreException, FilterEvaluationException {
+		Iterator<FeatureInputStream> rsIter = new Iterator<FeatureInputStream>() {
+			int i = 0;
 
-        StandardPresentationParams presentationParams = new StandardPresentationParams( null, null, ResultType.HITS,
-                                                                                        GML_31.getMimeType() );
-        GetFeature request = new GetFeature( WFS_110.getOGCVersion(), null, presentationParams, null,
-                                             Collections.singletonList( wfsQuery ) );
+			@Override
+			public boolean hasNext() {
+				return i < queries.length;
+			}
 
-        int hits = -1;
-        GetFeatureResponse<Feature> response = null;
-        try {
-            response = client.doGetFeature( request );
-            hits = response.getAsWFSFeatureCollection().getNumberMatched().intValue();
-        } catch ( OWSExceptionReport e ) {
-            throw new FeatureStoreException( "Remote WFS responded with exception report: " + e.getMessage() );
-        } catch ( Throwable t ) {
-            throw new FeatureStoreException( "Error performing GetFeature request to remote WFS: " + t.getMessage() );
-        } finally {
-            if ( response != null ) {
-                try {
-                    response.close();
-                } catch ( IOException e ) {
-                    // nothing to do
-                }
-            }
-        }
-        return hits;
-    }
+			@Override
+			public FeatureInputStream next() {
+				if (!hasNext()) {
+					throw new NoSuchElementException();
+				}
+				FeatureInputStream rs;
+				try {
+					rs = query(queries[i++]);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+					throw new RuntimeException(e.getMessage(), e);
+				}
+				return rs;
+			}
 
-    private org.deegree.protocol.wfs.query.Query toWFSQuery( Query query ) {
-        TypeName[] typeNames = query.getTypeNames();
-        String featureVersion = null;
-        ICRS srsName = null;
-        PropertyName[] projectionClauses = null;
-        SortProperty[] sortBy = query.getSortProperties();
-        Filter filter = query.getFilter();
-        return new FilterQuery( null, typeNames, featureVersion, srsName, projectionClauses, sortBy, filter );
-    }
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+		return new CombinedFeatureInputStream(rsIter);
+	}
 
-    @Override
-    public int[] queryHits( Query[] queries )
-                            throws FeatureStoreException, FilterEvaluationException {
-        int[] hits = new int[queries.length];
-        for ( int i = 0; i < queries.length; i++ ) {
-            hits[i] = queryHits( queries[i] );
-        }
-        return hits;
-    }
+	@Override
+	public int queryHits(Query query) throws FeatureStoreException, FilterEvaluationException {
 
-    @Override
-    public GMLObject getObjectById( String id )
-                            throws FeatureStoreException {
-        throw new UnsupportedOperationException( "RemoteWFSFeatureStore doesn't implement #getObjectById() (yet)." );
-    }
+		org.deegree.protocol.wfs.query.Query wfsQuery = toWFSQuery(query);
 
-    @Override
-    public FeatureStoreTransaction acquireTransaction()
-                            throws FeatureStoreException {
-        throw new UnsupportedOperationException( "RemoteWFSFeatureStore doesn't implement #acquireTransaction() (yet)." );
-    }
+		StandardPresentationParams presentationParams = new StandardPresentationParams(null, null, ResultType.HITS,
+				GML_31.getMimeType());
+		GetFeature request = new GetFeature(WFS_110.getOGCVersion(), null, presentationParams, null,
+				Collections.singletonList(wfsQuery));
 
-    @Override
-    public LockManager getLockManager()
-                            throws FeatureStoreException {
-        throw new UnsupportedOperationException( "RemoteWFSFeatureStore doesn't implement #getLockManager() (yet)." );
-    }
+		int hits = -1;
+		GetFeatureResponse<Feature> response = null;
+		try {
+			response = client.doGetFeature(request);
+			hits = response.getAsWFSFeatureCollection().getNumberMatched().intValue();
+		}
+		catch (OWSExceptionReport e) {
+			throw new FeatureStoreException("Remote WFS responded with exception report: " + e.getMessage());
+		}
+		catch (Throwable t) {
+			throw new FeatureStoreException("Error performing GetFeature request to remote WFS: " + t.getMessage());
+		}
+		finally {
+			if (response != null) {
+				try {
+					response.close();
+				}
+				catch (IOException e) {
+					// nothing to do
+				}
+			}
+		}
+		return hits;
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.deegree.workspace.Resource#getMetadata()
-     */
-    @Override
-    public ResourceMetadata<? extends Resource> getMetadata() {
-        // TODO Auto-generated method stub
-        return null;
-    }
+	private org.deegree.protocol.wfs.query.Query toWFSQuery(Query query) {
+		TypeName[] typeNames = query.getTypeNames();
+		String featureVersion = null;
+		ICRS srsName = null;
+		PropertyName[] projectionClauses = null;
+		SortProperty[] sortBy = query.getSortProperties();
+		Filter filter = query.getFilter();
+		return new FilterQuery(null, typeNames, featureVersion, srsName, projectionClauses, sortBy, filter);
+	}
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.deegree.workspace.Resource#init()
-     */
-    @Override
-    public void init() {
-        // TODO Auto-generated method stub
+	@Override
+	public int[] queryHits(Query[] queries) throws FeatureStoreException, FilterEvaluationException {
+		int[] hits = new int[queries.length];
+		for (int i = 0; i < queries.length; i++) {
+			hits[i] = queryHits(queries[i]);
+		}
+		return hits;
+	}
 
-    }
+	@Override
+	public GMLObject getObjectById(String id) throws FeatureStoreException {
+		throw new UnsupportedOperationException("RemoteWFSFeatureStore doesn't implement #getObjectById() (yet).");
+	}
+
+	@Override
+	public FeatureStoreTransaction acquireTransaction() throws FeatureStoreException {
+		throw new UnsupportedOperationException("RemoteWFSFeatureStore doesn't implement #acquireTransaction() (yet).");
+	}
+
+	@Override
+	public LockManager getLockManager() throws FeatureStoreException {
+		throw new UnsupportedOperationException("RemoteWFSFeatureStore doesn't implement #getLockManager() (yet).");
+	}
+
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see org.deegree.workspace.Resource#getMetadata()
+	 */
+	@Override
+	public ResourceMetadata<? extends Resource> getMetadata() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see org.deegree.workspace.Resource#init()
+	 */
+	@Override
+	public void init() {
+		// TODO Auto-generated method stub
+
+	}
+
 }

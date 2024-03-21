@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2014 by:
@@ -23,7 +22,7 @@
  Boomkamp 16
  7461 AX Rijssen
  The Netherlands
- http://idgis.nl/ 
+ http://idgis.nl/
 
  lat/lon GmbH
  Aennchenstr. 19, 53177 Bonn
@@ -43,6 +42,7 @@ package org.deegree.services.controller.utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Writer;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -51,74 +51,88 @@ import org.deegree.featureinfo.FeatureInfoContext;
 
 public class StandardFeatureInfoContext implements FeatureInfoContext {
 
-    private final HttpResponseBuffer response;
+	private final HttpResponseBuffer response;
 
-    private OutputStream outputStream = null;
+	private OutputStream outputStream = null;
 
-    private XMLStreamWriter xmlWriter = null;
+	private XMLStreamWriter xmlWriter = null;
 
-    private boolean redirected = false;
+	private Writer writer = null;
 
-    public StandardFeatureInfoContext( HttpResponseBuffer response ) {
-        this.response = response;
-    }
+	private boolean redirected = false;
 
-    @Override
-    public OutputStream getOutputStream()
-                            throws IOException {
+	public StandardFeatureInfoContext(HttpResponseBuffer response) {
+		this.response = response;
+	}
 
-        if ( outputStream != null ) {
-            return outputStream;
-        }
+	@Override
+	public OutputStream getOutputStream() throws IOException {
 
-        if ( redirected ) {
-            throw new IllegalStateException( "sendRedirect() already called for FeatureInfoContext" );
-        }
+		if (outputStream != null) {
+			return outputStream;
+		}
 
-        if ( xmlWriter != null ) {
-            throw new IllegalStateException( "getXmlWriter() already called for FeatureInfoContext" );
-        }
+		if (redirected) {
+			throw new IllegalStateException("sendRedirect() already called for FeatureInfoContext");
+		}
 
-        return outputStream = response.getOutputStream();
-    }
+		if (xmlWriter != null) {
+			throw new IllegalStateException("getXmlWriter() already called for FeatureInfoContext");
+		}
 
-    @Override
-    public XMLStreamWriter getXmlWriter()
-                            throws IOException, XMLStreamException {
+		return outputStream = response.getOutputStream();
+	}
 
-        if ( xmlWriter != null ) {
-            return xmlWriter;
-        }
+	@Override
+	public XMLStreamWriter getXmlWriter() throws IOException, XMLStreamException {
 
-        if ( redirected ) {
-            throw new IllegalStateException( "sendRedirect() already called for FeatureInfoContext" );
-        }
+		if (xmlWriter != null) {
+			return xmlWriter;
+		}
 
-        if ( outputStream != null ) {
-            throw new IllegalStateException( "getOutputStream() already called for FeatureInfoContext" );
-        }
+		if (redirected) {
+			throw new IllegalStateException("sendRedirect() already called for FeatureInfoContext");
+		}
 
-        return xmlWriter = response.getXMLWriter();
-    }
+		if (outputStream != null) {
+			throw new IllegalStateException("getOutputStream() already called for FeatureInfoContext");
+		}
 
-    @Override
-    public void sendRedirect( String location )
-                            throws IOException {
+		return xmlWriter = response.getXMLWriter();
+	}
 
-        if ( redirected ) {
-            throw new IllegalStateException( "sendRedirect() already called for FeatureInfoContext" );
-        }
+	@Override
+	public Writer getWriter() throws IOException {
+		if (writer != null) {
+			return writer;
+		}
+		if (redirected) {
+			throw new IllegalStateException("sendRedirect() already called for FeatureInfoContext");
+		}
+		if (outputStream != null) {
+			throw new IllegalStateException("getOutputStream() already called for FeatureInfoContext");
+		}
+		return writer = response.getWriter();
+	}
 
-        if ( outputStream != null ) {
-            throw new IllegalStateException( "getOutputStream() already called for FeatureInfoContext" );
-        }
+	@Override
+	public void sendRedirect(String location) throws IOException {
 
-        if ( xmlWriter != null ) {
-            throw new IllegalStateException( "getXmlWriter() already called for FeatureInfoContext" );
-        }
+		if (redirected) {
+			throw new IllegalStateException("sendRedirect() already called for FeatureInfoContext");
+		}
 
-        response.getWrappee().sendRedirect( location );
+		if (outputStream != null) {
+			throw new IllegalStateException("getOutputStream() already called for FeatureInfoContext");
+		}
 
-        redirected = true;
-    }
+		if (xmlWriter != null) {
+			throw new IllegalStateException("getXmlWriter() already called for FeatureInfoContext");
+		}
+
+		response.getWrappee().sendRedirect(location);
+
+		redirected = true;
+	}
+
 }

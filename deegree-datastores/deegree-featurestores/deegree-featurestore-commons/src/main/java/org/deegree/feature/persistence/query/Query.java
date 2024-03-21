@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2012 by:
@@ -59,222 +58,249 @@ import org.deegree.protocol.wfs.getfeature.TypeName;
 
 /**
  * Encapsulates the parameter of a query to a {@link FeatureStore}.
- * 
+ *
  * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
  */
 public class Query {
 
-    /**
-     * Names for hints and additional parameters that a {@link FeatureStore} implementation may take into account to
-     * increase efficient query processing.
-     * 
-     * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
-     * @author last edited by: $Author$
-     * 
-     * @version $Revision$, $Date$
-     */
-    public enum QueryHint {
-        /** If present, the store can use a different LOD for the scale. */
-        HINT_SCALE,
-        /** If present, the store can simplify geometries according to the resolution. */
-        HINT_RESOLUTION
-    }
+	private boolean strict;
 
-    private final TypeName[] typeNames;
+	/**
+	 * Names for hints and additional parameters that a {@link FeatureStore}
+	 * implementation may take into account to increase efficient query processing.
+	 *
+	 * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
+	 */
+	public enum QueryHint {
 
-    private final Filter filter;
+		/** If present, the store can use a different LOD for the scale. */
+		HINT_SCALE,
+		/** If present, the store can simplify geometries according to the resolution. */
+		HINT_RESOLUTION
 
-    // private final String featureVersion;
-    //
-    // private final ICRS srsName;
+	}
 
-    private final SortProperty[] sortBy;
+	private final TypeName[] typeNames;
 
-    private final Map<QueryHint, Object> hints = new HashMap<QueryHint, Object>();
+	private final Filter filter;
 
-    private int maxFeatures = -1;
+	// private final String featureVersion;
+	//
+	// private final ICRS srsName;
 
-    private final List<ProjectionClause> projections;
+	private final SortProperty[] sortBy;
 
-    /**
-     * Creates a new {@link Query} instance.
-     * 
-     * @param ftName
-     *            name of the requested feature type, must not be <code>null</code>
-     * @param filter
-     *            additional filter constraints, may be <code>null</code>, if not <code>null</code>, all contained
-     *            geometry operands must have a non-null {@link CRS}
-     * @param scale
-     *            if scale is positive, a scale query hint will be used
-     * @param maxFeatures
-     *            may be -1 if no limit needs to be exercised
-     * @param resolution
-     *            if resolution is positive, a pixel resolution hint will be used
-     */
-    public Query( QName ftName, Filter filter, int scale, int maxFeatures, double resolution ) {
-        this.typeNames = new TypeName[] { new TypeName( ftName, null ) };
-        this.filter = filter;
-        this.maxFeatures = maxFeatures;
-        if ( scale > 0 ) {
-            hints.put( HINT_SCALE, scale );
-        }
-        if ( resolution > 0 ) {
-            hints.put( HINT_RESOLUTION, resolution );
-        }
-        this.sortBy = new SortProperty[0];
-        this.projections = emptyList();
-    }
+	private final Map<QueryHint, Object> hints = new HashMap<QueryHint, Object>();
 
-    /**
-     * Creates a new {@link Query} instance.
-     * 
-     * @param typeNames
-     *            feature type names to be queried, must not be <code>null</code> and contain at least one entry
-     * @param filter
-     *            filter to be applied, can be <code>null</code>, if not <code>null</code>, all contained geometry
-     *            operands must have a non-null {@link CRS}
-     * @param featureVersion
-     *            specific feature version to be returned, can be <code>null</code>
-     * @param srsName
-     *            SRS for the returned geometries, can be <code>null</code>
-     * @param sortBy
-     *            sort criteria to be applied, can be <code>null</code>
-     */
-    public Query( TypeName[] typeNames, Filter filter, String featureVersion, ICRS srsName, SortProperty[] sortBy ) {
-        this.typeNames = typeNames;
-        this.filter = filter;
-        if ( sortBy != null ) {
-            this.sortBy = sortBy;
-        } else {
-            this.sortBy = new SortProperty[0];
-        }
-        this.projections = emptyList();
-    }
+	private int maxFeatures = -1;
 
-    /**
-     * Creates a new {@link Query} instance.
-     * 
-     * @param typeNames
-     *            feature type names to be queried, must not be <code>null</code> and contain at least one entry
-     * @param filter
-     *            filter to be applied, can be <code>null</code>, if not <code>null</code>, all contained geometry
-     *            operands must have a non-null {@link CRS}
-     * @param sortBy
-     *            sort criteria to be applied, can be <code>null</code>
-     * @param scale
-     *            if scale is positive, a scale query hint will be used
-     * @param maxFeatures
-     *            may be -1 if no limit needs to be exercised
-     * @param resolution
-     *            if resolution is positive, a pixel resolution hint will be used
-     */
-    public Query( TypeName[] typeNames, Filter filter, SortProperty[] sortBy, int scale, int maxFeatures,
-                  double resolution ) {
-        this.typeNames = typeNames;
-        this.filter = filter;
-        if ( sortBy != null ) {
-            this.sortBy = sortBy;
-        } else {
-            this.sortBy = new SortProperty[0];
-        }
-        this.maxFeatures = maxFeatures;
-        if ( scale > 0 ) {
-            hints.put( HINT_SCALE, scale );
-        }
-        if ( resolution > 0 ) {
-            hints.put( HINT_RESOLUTION, resolution );
-        }
-        this.projections = emptyList();
-    }
+	private int startIndex = 0;
 
-    public Object getHint( QueryHint code ) {
-        return hints.get( code );
-    }
+	private final List<ProjectionClause> projections;
 
-    /**
-     * Tries to extract a {@link BBOX} constraint from the query {@link Filter} that can be used as a pre-filtering step
-     * to narrow the result set.
-     * <p>
-     * The returned {@link Envelope} is determined by the following strategy:
-     * <ul>
-     * <li>If the filter is an {@link OperatorFilter}, it is attempted to extract an {@link BBOX} constraint from it.</li>
-     * <li>If no {@link BBOX} constraint can be extracted from the filter (not presented or nested in <code>Or</code> or
-     * <code>Not</code> expressions, <code>null</code> is returned.</li>
-     * </ul>
-     * </p>
-     * 
-     * @return a {@link BBOX} suitable for pre-filtering feature candidates, can be <code>null</code>
-     */
-    public BBOX getPrefilterBBox() {
-        return extractPrefilterBBoxConstraint( filter );
-    }
+	/**
+	 * Creates a new {@link Query} instance.
+	 * @param ftName name of the requested feature type, must not be <code>null</code>
+	 * @param filter additional filter constraints, may be <code>null</code>, if not
+	 * <code>null</code>, all contained geometry operands must have a non-null {@link CRS}
+	 * @param scale if scale is positive, a scale query hint will be used
+	 * @param maxFeatures may be -1 if no limit needs to be exercised
+	 * @param resolution if resolution is positive, a pixel resolution hint will be used
+	 */
+	public Query(QName ftName, Filter filter, int scale, int maxFeatures, double resolution) {
+		this.typeNames = new TypeName[] { new TypeName(ftName, null) };
+		this.filter = filter;
+		this.maxFeatures = maxFeatures;
+		if (scale > 0) {
+			hints.put(HINT_SCALE, scale);
+		}
+		if (resolution > 0) {
+			hints.put(HINT_RESOLUTION, resolution);
+		}
+		this.sortBy = new SortProperty[0];
+		this.projections = emptyList();
+	}
 
-    /**
-     * Tries to extract an {@link Envelope} from the query {@link Filter} that can be used as a pre-filtering step to
-     * narrow the result set.
-     * <p>
-     * The returned {@link Envelope} is determined by the following strategy:
-     * <ul>
-     * <li>If the filter is an {@link OperatorFilter}, it is attempted to extract an {@link BBOX} constraint from it.</li>
-     * <li>If no {@link BBOX} constraint can be extracted from the filter (not presented or nested in <code>Or</code> or
-     * <code>Not</code> expressions, <code>null</code> is returned.</li>
-     * </ul>
-     * </p>
-     * 
-     * @return a {@link Envelope} suitable for pre-filtering feature candidates, can be <code>null</code>
-     */
-    public Envelope getPrefilterBBoxEnvelope() {
-        BBOX bbox = extractPrefilterBBoxConstraint( filter );
-        if ( bbox == null ) {
-            return null;
-        }
-        return bbox.getBoundingBox();
-    }
+	/**
+	 * Creates a new {@link Query} instance.
+	 * @param typeNames feature type names to be queried, must not be <code>null</code>
+	 * and contain at least one entry
+	 * @param filter filter to be applied, can be <code>null</code>, if not
+	 * <code>null</code>, all contained geometry operands must have a non-null {@link CRS}
+	 * @param featureVersion specific feature version to be returned, can be
+	 * <code>null</code>
+	 * @param srsName SRS for the returned geometries, can be <code>null</code>
+	 * @param sortBy sort criteria to be applied, can be <code>null</code>
+	 */
+	public Query(TypeName[] typeNames, Filter filter, String featureVersion, ICRS srsName, SortProperty[] sortBy) {
+		this.typeNames = typeNames;
+		this.filter = filter;
+		if (sortBy != null) {
+			this.sortBy = sortBy;
+		}
+		else {
+			this.sortBy = new SortProperty[0];
+		}
+		this.projections = emptyList();
+	}
 
-    /**
-     * Returns the names of the requested feature types.
-     * 
-     * @return the names of the requested feature types, never <code>null</code> (but may be empty for id filter
-     *         queries)
-     */
-    public TypeName[] getTypeNames() {
-        return typeNames;
-    }
+	/**
+	 * Creates a new {@link Query} instance.
+	 * @param typeNames feature type names to be queried, must not be <code>null</code>
+	 * and contain at least one entry
+	 * @param filter filter to be applied, can be <code>null</code>, if not
+	 * <code>null</code>, all contained geometry operands must have a non-null {@link CRS}
+	 * @param sortBy sort criteria to be applied, can be <code>null</code>
+	 * @param maxFeatures number of features to return, if not specified: -1
+	 * @param startIndex index of the first feature to return, default: 0
+	 */
+	public Query(TypeName[] typeNames, Filter filter, SortProperty[] sortBy, int maxFeatures, int startIndex) {
+		this.typeNames = typeNames;
+		this.filter = filter;
+		this.maxFeatures = maxFeatures;
+		this.startIndex = startIndex;
+		if (sortBy != null) {
+			this.sortBy = sortBy;
+		}
+		else {
+			this.sortBy = new SortProperty[0];
+		}
+		this.projections = emptyList();
+	}
 
-    /**
-     * Returns the {@link Filter}.
-     * 
-     * @return filter, may be <code>null</code>
-     */
-    public Filter getFilter() {
-        return filter;
-    }
+	/**
+	 * Creates a new {@link Query} instance.
+	 * @param typeNames feature type names to be queried, must not be <code>null</code>
+	 * and contain at least one entry
+	 * @param filter filter to be applied, can be <code>null</code>, if not
+	 * <code>null</code>, all contained geometry operands must have a non-null {@link CRS}
+	 * @param sortBy sort criteria to be applied, can be <code>null</code>
+	 * @param scale if scale is positive, a scale query hint will be used
+	 * @param maxFeatures may be -1 if no limit needs to be exercised
+	 * @param resolution if resolution is positive, a pixel resolution hint will be used
+	 */
+	public Query(TypeName[] typeNames, Filter filter, SortProperty[] sortBy, int scale, int maxFeatures,
+			double resolution) {
+		this.typeNames = typeNames;
+		this.filter = filter;
+		if (sortBy != null) {
+			this.sortBy = sortBy;
+		}
+		else {
+			this.sortBy = new SortProperty[0];
+		}
+		this.maxFeatures = maxFeatures;
+		if (scale > 0) {
+			hints.put(HINT_SCALE, scale);
+		}
+		if (resolution > 0) {
+			hints.put(HINT_RESOLUTION, resolution);
+		}
+		this.projections = emptyList();
+	}
 
-    /**
-     * Returns the sort criteria.
-     * 
-     * @return the sort criteria, never <code>null</code> (but may be empty)
-     */
-    public SortProperty[] getSortProperties() {
-        return sortBy;
-    }
+	public void setHandleStrict(boolean strict) {
+		this.strict = strict;
+	}
 
-    /**
-     * Returns the projections to be applied to returned features.
-     * 
-     * @return projections to be applied to returned features, never <code>null</code> (but can be empty)
-     */
-    public List<ProjectionClause> getProjections() {
-        return projections;
-    }
+	public boolean isHandleStrict() {
+		return this.strict;
+	}
 
-    /**
-     * @return -1, if no limit has been set
-     */
-    public int getMaxFeatures() {
-        return maxFeatures;
-    }
+	public Object getHint(QueryHint code) {
+		return hints.get(code);
+	}
+
+	/**
+	 * Tries to extract a {@link BBOX} constraint from the query {@link Filter} that can
+	 * be used as a pre-filtering step to narrow the result set.
+	 * <p>
+	 * The returned {@link Envelope} is determined by the following strategy:
+	 * <ul>
+	 * <li>If the filter is an {@link OperatorFilter}, it is attempted to extract an
+	 * {@link BBOX} constraint from it.</li>
+	 * <li>If no {@link BBOX} constraint can be extracted from the filter (not presented
+	 * or nested in <code>Or</code> or <code>Not</code> expressions, <code>null</code> is
+	 * returned.</li>
+	 * </ul>
+	 * </p>
+	 * @return a {@link BBOX} suitable for pre-filtering feature candidates, can be
+	 * <code>null</code>
+	 */
+	public BBOX getPrefilterBBox() {
+		return extractPrefilterBBoxConstraint(filter);
+	}
+
+	/**
+	 * Tries to extract an {@link Envelope} from the query {@link Filter} that can be used
+	 * as a pre-filtering step to narrow the result set.
+	 * <p>
+	 * The returned {@link Envelope} is determined by the following strategy:
+	 * <ul>
+	 * <li>If the filter is an {@link OperatorFilter}, it is attempted to extract an
+	 * {@link BBOX} constraint from it.</li>
+	 * <li>If no {@link BBOX} constraint can be extracted from the filter (not presented
+	 * or nested in <code>Or</code> or <code>Not</code> expressions, <code>null</code> is
+	 * returned.</li>
+	 * </ul>
+	 * </p>
+	 * @return a {@link Envelope} suitable for pre-filtering feature candidates, can be
+	 * <code>null</code>
+	 */
+	public Envelope getPrefilterBBoxEnvelope() {
+		BBOX bbox = extractPrefilterBBoxConstraint(filter);
+		if (bbox == null) {
+			return null;
+		}
+		return bbox.getBoundingBox();
+	}
+
+	/**
+	 * Returns the names of the requested feature types.
+	 * @return the names of the requested feature types, never <code>null</code> (but may
+	 * be empty for id filter queries)
+	 */
+	public TypeName[] getTypeNames() {
+		return typeNames;
+	}
+
+	/**
+	 * Returns the {@link Filter}.
+	 * @return filter, may be <code>null</code>
+	 */
+	public Filter getFilter() {
+		return filter;
+	}
+
+	/**
+	 * Returns the sort criteria.
+	 * @return the sort criteria, never <code>null</code> (but may be empty)
+	 */
+	public SortProperty[] getSortProperties() {
+		return sortBy;
+	}
+
+	/**
+	 * Returns the projections to be applied to returned features.
+	 * @return projections to be applied to returned features, never <code>null</code>
+	 * (but can be empty)
+	 */
+	public List<ProjectionClause> getProjections() {
+		return projections;
+	}
+
+	/**
+	 * @return -1, if no limit has been set
+	 */
+	public int getMaxFeatures() {
+		return maxFeatures;
+	}
+
+	/**
+	 * @return the index of the first feature to return
+	 */
+	public int getStartIndex() {
+		return startIndex;
+	}
+
 }

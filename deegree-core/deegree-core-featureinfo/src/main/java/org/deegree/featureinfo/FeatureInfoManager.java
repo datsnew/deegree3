@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2012 by:
@@ -41,18 +40,9 @@
  ----------------------------------------------------------------------------*/
 package org.deegree.featureinfo;
 
-import static org.slf4j.LoggerFactory.getLogger;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-
-import javax.xml.stream.XMLStreamException;
-
 import org.deegree.featureinfo.serializing.FeatureInfoGmlWriter;
 import org.deegree.featureinfo.serializing.FeatureInfoSerializer;
+import org.deegree.featureinfo.serializing.GeoJsonFeatureInfoSerializer;
 import org.deegree.featureinfo.serializing.PlainTextFeatureInfoSerializer;
 import org.deegree.featureinfo.serializing.TemplateFeatureInfoSerializer;
 import org.deegree.featureinfo.serializing.XsltFeatureInfoSerializer;
@@ -60,78 +50,94 @@ import org.deegree.gml.GMLVersion;
 import org.deegree.workspace.Workspace;
 import org.slf4j.Logger;
 
+import javax.xml.stream.XMLStreamException;
+import java.io.IOException;
+import java.net.URL;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+import static org.slf4j.LoggerFactory.getLogger;
+
 /**
  * Responsible for managing feature info output formats and their serializers.
- * 
+ *
  * @author <a href="mailto:schmitz@occamlabs.de">Andreas Schmitz</a>
  * @author <a href="mailto:reijer.copier@idgis.nl">Reijer Copier</a>
- * @author last edited by: $Author: stranger $
- * 
- * @version $Revision: $, $Date: $
  */
 public class FeatureInfoManager {
 
-    private static final Logger LOG = getLogger( FeatureInfoManager.class );
+	private static final Logger LOG = getLogger(FeatureInfoManager.class);
 
-    private final Map<String, FeatureInfoSerializer> featureInfoSerializers = new LinkedHashMap<String, FeatureInfoSerializer>();
+	private final Map<String, FeatureInfoSerializer> featureInfoSerializers = new LinkedHashMap<String, FeatureInfoSerializer>();
 
-    public FeatureInfoManager( boolean addDefaultFormats ) {
-        if ( addDefaultFormats ) {
-            LOG.debug( "Adding default feature info formats" );
+	public FeatureInfoManager(boolean addDefaultFormats) {
+		if (addDefaultFormats) {
+			LOG.debug("Adding default feature info formats");
 
-            final FeatureInfoGmlWriter gmlWriter = new FeatureInfoGmlWriter();
+			final FeatureInfoGmlWriter gmlWriter = new FeatureInfoGmlWriter();
 
-            featureInfoSerializers.put( "application/vnd.ogc.gml", gmlWriter );
-            featureInfoSerializers.put( "text/xml", gmlWriter );
+			featureInfoSerializers.put("application/vnd.ogc.gml", gmlWriter);
+			featureInfoSerializers.put("text/xml", gmlWriter);
 
-            featureInfoSerializers.put( "text/plain", new PlainTextFeatureInfoSerializer() );
-            featureInfoSerializers.put( "text/html", new TemplateFeatureInfoSerializer() );
+			featureInfoSerializers.put("text/plain", new PlainTextFeatureInfoSerializer());
+			featureInfoSerializers.put("text/html", new TemplateFeatureInfoSerializer());
 
-            for ( final String version : new String[] { "2.1", "3.0", "3.1", "3.2" } ) {
-                featureInfoSerializers.put( "application/gml+xml; version=" + version, gmlWriter );
-            }
+			for (final String version : new String[] { "2.1", "3.0", "3.1", "3.2" }) {
+				featureInfoSerializers.put("application/gml+xml; version=" + version, gmlWriter);
+			}
 
-            for ( final String version : new String[] { "2.1.2", "3.0.1", "3.1.1", "3.2.1" } ) {
-                featureInfoSerializers.put( "text/xml; subtype=gml/" + version, gmlWriter );
-            }
-        }
-    }
+			for (final String version : new String[] { "2.1.2", "3.0.1", "3.1.1", "3.2.1" }) {
+				featureInfoSerializers.put("text/xml; subtype=gml/" + version, gmlWriter);
+			}
+		}
+	}
 
-    public void addOrReplaceCustomFormat( String format, FeatureInfoSerializer serializer ) {
-        LOG.debug( "Adding custom feature info format" );
+	public void addOrReplaceCustomFormat(String format, FeatureInfoSerializer serializer) {
+		LOG.debug("Adding custom feature info format");
 
-        featureInfoSerializers.put( format, serializer );
-    }
+		featureInfoSerializers.put(format, serializer);
+	}
 
-    public void addOrReplaceFormat( String format, String file ) {
-        LOG.debug( "Adding template feature info format" );
+	public void addOrReplaceFormat(String format, String file) {
+		LOG.debug("Adding template feature info format");
 
-        featureInfoSerializers.put( format, new TemplateFeatureInfoSerializer( file ) );
-    }
+		featureInfoSerializers.put(format, new TemplateFeatureInfoSerializer(file));
+	}
 
-    public void addOrReplaceXsltFormat( String format, URL xsltUrl, GMLVersion version, Workspace workspace ) {
-        LOG.debug( "Adding xslt feature info format" );
+	public void addOrReplaceXsltFormat(String format, URL xsltUrl, GMLVersion version, Workspace workspace) {
+		LOG.debug("Adding xslt feature info format");
 
-        XsltFeatureInfoSerializer xslt = new XsltFeatureInfoSerializer( version, xsltUrl, workspace );
-        featureInfoSerializers.put( format, xslt );
-    }
+		XsltFeatureInfoSerializer xslt = new XsltFeatureInfoSerializer(version, xsltUrl, workspace);
+		featureInfoSerializers.put(format, xslt);
+	}
 
-    public Set<String> getSupportedFormats() {
-        return featureInfoSerializers.keySet();
-    }
+	public void addOrReplaceGeoJsonFormat(String format, boolean allowOtherCrsThanWGS84,
+			boolean allowExportOfGeometries) {
+		LOG.debug("Adding GeoJson feature info format");
+		GeoJsonFeatureInfoSerializer geoJsonSerializer = new GeoJsonFeatureInfoSerializer(allowOtherCrsThanWGS84,
+				allowExportOfGeometries);
+		featureInfoSerializers.put(format, geoJsonSerializer);
+	}
 
-    public void serializeFeatureInfo( FeatureInfoParams params, FeatureInfoContext context )
-                            throws IOException, XMLStreamException {
+	public Set<String> getSupportedFormats() {
+		return featureInfoSerializers.keySet();
+	}
 
-        String format = params.getFormat();
+	public void serializeFeatureInfo(FeatureInfoParams params, FeatureInfoContext context)
+			throws IOException, XMLStreamException {
 
-        LOG.debug( "Generating feature info output for format: {}", format );
+		String format = params.getFormat();
 
-        FeatureInfoSerializer serializer = featureInfoSerializers.get( format.toLowerCase() );
-        if ( serializer != null ) {
-            serializer.serialize( params, context );
-        } else {
-            throw new IOException( "FeatureInfo format '" + format + "' is unknown." );
-        }
-    }
+		LOG.debug("Generating feature info output for format: {}", format);
+
+		FeatureInfoSerializer serializer = featureInfoSerializers.get(format.toLowerCase());
+		if (serializer != null) {
+			serializer.serialize(params, context);
+		}
+		else {
+			throw new IOException("FeatureInfo format '" + format + "' is unknown.");
+		}
+	}
+
 }

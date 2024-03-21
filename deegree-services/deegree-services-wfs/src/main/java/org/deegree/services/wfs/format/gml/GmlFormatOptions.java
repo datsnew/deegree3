@@ -41,202 +41,205 @@ import org.deegree.geometry.Geometry;
 import org.deegree.geometry.SFSProfiler;
 import org.deegree.geometry.io.CoordinateFormatter;
 import org.deegree.gml.GMLVersion;
+import org.deegree.gml.schema.GMLSchemaInfoSet;
 
 /**
  * Configuration options for {@link GmlFormat}.
- * 
+ *
  * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * 
  * @since 3.3
  */
 public class GmlFormatOptions {
 
-    private final GMLVersion gmlVersion;
+	private final GMLVersion gmlVersion;
 
-    private final QName responseContainerEl;
+	private final QName responseContainerEl;
 
-    private final QName responseFeatureMemberEl;
+	private final QName responseFeatureMemberEl;
 
-    private final String schemaLocation;
+	private final String schemaLocation;
 
-    private final boolean disableStreaming;
+	private final boolean disableStreaming;
 
-    private final boolean generateBoundedByForFeatures;
+	private final boolean generateBoundedByForFeatures;
 
-    private final int queryMaxFeatures;
+	private final int queryMaxFeatures;
 
-    private final boolean checkAreaOfUse;
+	private final boolean checkAreaOfUse;
 
-    private final CoordinateFormatter formatter;
+	private final CoordinateFormatter formatter;
 
-    private final String appSchemaBaseURL;
+	private final String appSchemaBaseURL;
 
-    private final String mimeType;
+	private final String mimeType;
 
-    private final boolean exportOriginalSchema;
+	private final boolean exportOriginalSchema;
 
-    private final SFSProfiler geometrySimplifier;
+	private final SFSProfiler geometrySimplifier;
 
-    private final NamespaceBindings prebindNamespaces;
+	private final NamespaceBindings prebindNamespaces;
 
-    private final boolean enableResponsePaging;
+	private final boolean enableResponsePaging;
 
-    /**
-     * Creates a new {@link GmlFormatOptions} instance.
-     * 
-     * @param gmlVersion
-     *            GML version, must not be <code>null</code>
-     * @param responseContainerEl
-     *            can be <code>null</code> (use default <code>wfs:FeatureCollection</code> element)
-     * @param responseFeatureMemberEl
-     *            can be <code>null</code> (use default <code>wfs:featureMember/wfs:member</code> element)
-     * @param schemaLocation
-     *            can be <code>null</code> ()
-     * @param disableStreaming
-     * @param generateBoundedByForFeatures
-     * @param queryMaxFeatures
-     * @param checkAreaOfUse
-     * @param formatter
-     * @param appSchemaBaseURL
-     * @param mimeType
-     * @param exportOriginalSchema
-     * @param geometrySimplifier
-     *            simplifier to apply to exported geometries, can be <code>null</code> (no simplification performed)
-     * @param prebindNamespaces
-     *            namespaces to bind in the root element of GetFeature responses, can be <code>null</code>
-     * @param enableResponsePaging
-     *            is response paging enabled
-     */
-    public GmlFormatOptions( final GMLVersion gmlVersion, final QName responseContainerEl,
-                             final QName responseFeatureMemberEl, final String schemaLocation,
-                             final boolean disableStreaming, final boolean generateBoundedByForFeatures,
-                             final int queryMaxFeatures, final boolean checkAreaOfUse,
-                             final CoordinateFormatter formatter, final String appSchemaBaseURL, final String mimeType,
-                             final boolean exportOriginalSchema, final SFSProfiler geometrySimplifier,
-                             final NamespaceBindings prebindNamespaces, final boolean enableResponsePaging ) {
-        this.gmlVersion = gmlVersion;
-        this.responseContainerEl = responseContainerEl;
-        this.responseFeatureMemberEl = responseFeatureMemberEl;
-        this.schemaLocation = schemaLocation;
-        this.disableStreaming = disableStreaming;
-        this.generateBoundedByForFeatures = generateBoundedByForFeatures;
-        this.queryMaxFeatures = queryMaxFeatures;
-        this.checkAreaOfUse = checkAreaOfUse;
-        this.formatter = formatter;
-        this.appSchemaBaseURL = appSchemaBaseURL;
-        this.mimeType = mimeType;
-        this.exportOriginalSchema = exportOriginalSchema;
-        this.geometrySimplifier = geometrySimplifier;
-        this.prebindNamespaces = prebindNamespaces;
-        this.enableResponsePaging = enableResponsePaging;
-    }
+	private final GMLSchemaInfoSet originalSchemaLocation;
 
-    /**
-     * @return the gmlVersion
-     */
-    public GMLVersion getGmlVersion() {
-        return gmlVersion;
-    }
+	/**
+	 * Creates a new {@link GmlFormatOptions} instance.
+	 * @param gmlVersion GML version, must not be <code>null</code>
+	 * @param responseContainerEl can be <code>null</code> (use default
+	 * <code>wfs:FeatureCollection</code> element)
+	 * @param responseFeatureMemberEl can be <code>null</code> (use default
+	 * <code>wfs:featureMember/wfs:member</code> element)
+	 * @param schemaLocation can be <code>null</code> ()
+	 * @param disableStreaming
+	 * @param generateBoundedByForFeatures
+	 * @param queryMaxFeatures
+	 * @param checkAreaOfUse
+	 * @param formatter
+	 * @param appSchemaBaseURL
+	 * @param mimeType
+	 * @param exportOriginalSchema
+	 * @param geometrySimplifier simplifier to apply to exported geometries, can be
+	 * <code>null</code> (no simplification performed)
+	 * @param prebindNamespaces namespaces to bind in the root element of GetFeature
+	 * responses, can be <code>null</code>
+	 * @param enableResponsePaging is response paging enabled
+	 */
+	public GmlFormatOptions(final GMLVersion gmlVersion, final QName responseContainerEl,
+			final QName responseFeatureMemberEl, final String schemaLocation, final boolean disableStreaming,
+			final boolean generateBoundedByForFeatures, final int queryMaxFeatures, final boolean checkAreaOfUse,
+			final CoordinateFormatter formatter, final String appSchemaBaseURL, final String mimeType,
+			final boolean exportOriginalSchema, final SFSProfiler geometrySimplifier,
+			final NamespaceBindings prebindNamespaces, final boolean enableResponsePaging,
+			final GMLSchemaInfoSet originalSchemaLocation) {
+		this.gmlVersion = gmlVersion;
+		this.responseContainerEl = responseContainerEl;
+		this.responseFeatureMemberEl = responseFeatureMemberEl;
+		this.schemaLocation = schemaLocation;
+		this.disableStreaming = disableStreaming;
+		this.generateBoundedByForFeatures = generateBoundedByForFeatures;
+		this.queryMaxFeatures = queryMaxFeatures;
+		this.checkAreaOfUse = checkAreaOfUse;
+		this.formatter = formatter;
+		this.appSchemaBaseURL = appSchemaBaseURL;
+		this.mimeType = mimeType;
+		this.exportOriginalSchema = exportOriginalSchema;
+		this.geometrySimplifier = geometrySimplifier;
+		this.prebindNamespaces = prebindNamespaces;
+		this.enableResponsePaging = enableResponsePaging;
+		this.originalSchemaLocation = originalSchemaLocation;
+	}
 
-    /**
-     * @return the responseContainerEl
-     */
-    public QName getResponseContainerEl() {
-        return responseContainerEl;
-    }
+	/**
+	 * @return the gmlVersion
+	 */
+	public GMLVersion getGmlVersion() {
+		return gmlVersion;
+	}
 
-    /**
-     * @return the responseFeatureMemberEl
-     */
-    public QName getResponseFeatureMemberEl() {
-        return responseFeatureMemberEl;
-    }
+	/**
+	 * @return the responseContainerEl
+	 */
+	public QName getResponseContainerEl() {
+		return responseContainerEl;
+	}
 
-    /**
-     * @return the schemaLocation
-     */
-    public String getSchemaLocation() {
-        return schemaLocation;
-    }
+	/**
+	 * @return the responseFeatureMemberEl
+	 */
+	public QName getResponseFeatureMemberEl() {
+		return responseFeatureMemberEl;
+	}
 
-    /**
-     * @return the disableStreaming
-     */
-    public boolean isDisableStreaming() {
-        return disableStreaming;
-    }
+	/**
+	 * @return the schemaLocation
+	 */
+	public String getSchemaLocation() {
+		return schemaLocation;
+	}
 
-    /**
-     * @return the generateBoundedByForFeatures
-     */
-    public boolean isGenerateBoundedByForFeatures() {
-        return generateBoundedByForFeatures;
-    }
+	/**
+	 * @return the disableStreaming
+	 */
+	public boolean isDisableStreaming() {
+		return disableStreaming;
+	}
 
-    /**
-     * @return the queryMaxFeatures
-     */
-    public int getQueryMaxFeatures() {
-        return queryMaxFeatures;
-    }
+	/**
+	 * @return the generateBoundedByForFeatures
+	 */
+	public boolean isGenerateBoundedByForFeatures() {
+		return generateBoundedByForFeatures;
+	}
 
-    /**
-     * @return the checkAreaOfUse
-     */
-    public boolean isCheckAreaOfUse() {
-        return checkAreaOfUse;
-    }
+	/**
+	 * @return the queryMaxFeatures
+	 */
+	public int getQueryMaxFeatures() {
+		return queryMaxFeatures;
+	}
 
-    /**
-     * @return the formatter
-     */
-    public CoordinateFormatter getFormatter() {
-        return formatter;
-    }
+	/**
+	 * @return the checkAreaOfUse
+	 */
+	public boolean isCheckAreaOfUse() {
+		return checkAreaOfUse;
+	}
 
-    /**
-     * @return the appSchemaBaseURL
-     */
-    public String getAppSchemaBaseURL() {
-        return appSchemaBaseURL;
-    }
+	/**
+	 * @return the formatter
+	 */
+	public CoordinateFormatter getFormatter() {
+		return formatter;
+	}
 
-    /**
-     * @return the mimeType
-     */
-    public String getMimeType() {
-        return mimeType;
-    }
+	/**
+	 * @return the appSchemaBaseURL
+	 */
+	public String getAppSchemaBaseURL() {
+		return appSchemaBaseURL;
+	}
 
-    /**
-     * @return the exportOriginalSchema
-     */
-    public boolean isExportOriginalSchema() {
-        return exportOriginalSchema;
-    }
+	/**
+	 * @return the mimeType
+	 */
+	public String getMimeType() {
+		return mimeType;
+	}
 
-    /**
-     * Returns the {@link SFSProfiler} to apply to exported {@link Geometry} instances.
-     * 
-     * @return simplifier, can be <code>null</code> (no simplification performed)
-     */
-    public SFSProfiler getGeometrySimplifier() {
-        return geometrySimplifier;
-    }
+	/**
+	 * @return the exportOriginalSchema
+	 */
+	public boolean isExportOriginalSchema() {
+		return exportOriginalSchema;
+	}
 
-    /**
-     * @return namespaces to bind in the root element of GetFeature responses, can be <code>null</code>
-     */
-    public NamespaceBindings getPrebindNamespaces() {
-        return prebindNamespaces;
-    }
+	/**
+	 * Returns the {@link SFSProfiler} to apply to exported {@link Geometry} instances.
+	 * @return simplifier, can be <code>null</code> (no simplification performed)
+	 */
+	public SFSProfiler getGeometrySimplifier() {
+		return geometrySimplifier;
+	}
 
-    /**
-     * @return is response paging enabled
-     */
-    public boolean isEnableResponsePaging() {
-        return enableResponsePaging;
-    }
+	/**
+	 * @return namespaces to bind in the root element of GetFeature responses, can be
+	 * <code>null</code>
+	 */
+	public NamespaceBindings getPrebindNamespaces() {
+		return prebindNamespaces;
+	}
+
+	/**
+	 * @return is response paging enabled
+	 */
+	public boolean isEnableResponsePaging() {
+		return enableResponsePaging;
+	}
+
+	public GMLSchemaInfoSet getOriginalSchemaLocation() {
+		return originalSchemaLocation;
+	}
 
 }

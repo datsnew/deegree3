@@ -33,61 +33,58 @@ import java.net.URL;
 
 import org.apache.commons.io.IOUtils;
 import org.deegree.console.Config;
+import org.deegree.services.controller.OGCFrontController;
 
 /**
  * Config implementation for the main.xml.
- * 
+ *
  * @author <a href="mailto:schmitz@occamlabs.de">Andreas Schmitz</a>
- * 
  * @since 3.4
  */
 public class MainConfig extends Config implements Serializable {
 
-    private static final long serialVersionUID = -8185523546919352171L;
+	private static final long serialVersionUID = -8185523546919352171L;
 
-    private static final URL MAIN_SCHEMA_URL = ServicesBean.class.getResource( "/META-INF/schemas/services/controller/3.4.0/controller.xsd" );
+	private static final URL MAIN_SCHEMA_URL = ServicesBean.class
+		.getResource("/META-INF/schemas/services/controller/controller.xsd");
 
-    private String file;
+	public MainConfig() {
+		super(null, null, "/console/webservices/index", false);
+	}
 
-    public MainConfig() {
-        super( null, null, "/console/webservices/index", false );
-    }
+	@Override
+	public String edit() throws IOException {
+		String workspaceName = OGCFrontController.getServiceWorkspace().getName();
+		String fileName = workspaceName + "/services/main.xml";
 
-    public MainConfig( String file ) {
-        super( null, null, "/console/webservices/index", false );
-        this.file = file;
-    }
+		StringBuilder sb = new StringBuilder("/console/generic/xmleditor?faces-redirect=true");
+		sb.append("&id=").append(id);
+		sb.append("&schemaUrl=").append(MAIN_SCHEMA_URL.toString());
+		sb.append("&fileName=").append(fileName);
+		sb.append("&emptyTemplate=").append(getTemplate());
+		sb.append("&nextView=").append(getResourceOutcome());
+		return sb.toString();
+	}
 
-    @Override
-    public String edit()
-                            throws IOException {
-        StringBuilder sb = new StringBuilder( "/console/generic/xmleditor?faces-redirect=true" );
-        sb.append( "&id=" ).append( id );
-        sb.append( "&schemaUrl=" ).append( MAIN_SCHEMA_URL.toString() );
-        sb.append( "&fileName=" ).append( file );
-        sb.append( "&emptyTemplate=").append( getTemplate() );
-        sb.append( "&nextView=" ).append( getResourceOutcome() );
-        return sb.toString();
-    }
+	@Override
+	public String getSchemaAsText() {
+		try {
+			return IOUtils.toString(MAIN_SCHEMA_URL);
+		}
+		catch (IOException e) {
+			// ignore
+		}
+		return "";
+	}
 
-    @Override
-    public String getSchemaAsText() {
-        try {
-            return IOUtils.toString( MAIN_SCHEMA_URL );
-        } catch ( IOException e ) {
-            // ignore
-        }
-        return "";
-    }
+	@Override
+	public URL getTemplate() {
+		return ServicesBean.class.getResource("/META-INF/schemas/services/controller/example.xml");
+	}
 
-    @Override
-    public URL getTemplate() {
-        return ServicesBean.class.getResource( "/META-INF/schemas/services/controller/3.4.0/example.xml" );
-    }
-
-    @Override
-    public URL getSchemaURL() {
-        return MAIN_SCHEMA_URL;
-    }
+	@Override
+	public URL getSchemaURL() {
+		return MAIN_SCHEMA_URL;
+	}
 
 }

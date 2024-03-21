@@ -9,10 +9,20 @@ workspaces or resources and start a different workspace.
 
 The servlet that handles the REST interface is already running if you
 use the standard _web.xml_ deployment descriptor. For security reasons
-the REST API is only accessible after successful authentication against
-the servlet container. When using Apache Tomcat you'll need to add a
-user with the role _deegree_ to your Tomcat configuration
-_conf/tomcat-users.xml_ file.
+the REST API is secured by default with an API key read from the 
+_config.apikey_ file in deegree workspace directory.
+
+The API key can be provide in multiple different ways.
+* As header value of key `X-API-Key`
+* As authorization header of bearer type
+* As basic authorization password where username will be ignored
+* As parameter `token`
+* As parameter `api_key`
+
+TIP: If there is no _config.apikey_ file, one will be generated on startup
+with an random value. Alternatively, a value of `*` in config.apikey will 
+turn off security for the REST API. We strongly advise against doing this
+in productive environments.
 
 Once you did that, you can get an overview of available 'commands' by
 requesting _http://localhost:8080/deegree-webservices/config_. You'll
@@ -30,13 +40,20 @@ GET /config/download/wsname[/path]                           - download workspac
 GET /config/restart                                          - restart currently running workspace
 GET /config/restart[/path]                                   - restarts all resources connected to the specified one
 GET /config/restart/wsname                                   - restart with workspace <wsname>
+GET /config/update                                           - update currently running workspace, rescan config files and update resources
+GET /config/update/wsname                                    - update with workspace <wsname>, rescan config files and update resources
 GET /config/listworkspaces                                   - list available workspace names
+GET /config/listfonts                                        - list currently available fonts on the server
 GET /config/list[/path]                                      - list currently running workspace or directory in workspace
 GET /config/list/wsname[/path]                               - list workspace with name <wsname> or directory in workspace
 GET /config/invalidate/datasources/tile/id/matrixset[?bbox=] - invalidate part or all of a tile store cache's tile matrix set
 GET /config/crs/list                                         - list available CRS definitions
 POST /config/crs/getcodes with wkt=<wkt>                     - retrieves a list of CRS codes corresponding to the WKT (POSTed KVP)
 GET /config/crs/<code>                                       - checks if a CRS definition is available, returns true/false
+GET /config/validate[/path]                                  - validate currently running workspace or file in workspace
+GET /config/validate/wsname[/path]                           - validate workspace with name <wsname> or file in workspace
+GET /config/update/bboxcache[?featureStoreId=]               - recalculates the bounding boxes of all feature stores of the currently running workspace, with the parameter 'featureStoreId' a comma separated list of feature stores to update can be passed
+GET /config/update/bboxcache/wsname[?featureStoreId=]        - recalculates the bounding boxes of all feature stores of the workspace with name <wsname>, with the parameter 'featureStoreId' a comma separated list of feature stores to update can be passed
 PUT /config/upload/wsname.zip                                - upload workspace <wsname>
 PUT /config/upload/path/file                                 - upload file into current workspace
 PUT /config/upload/wsname/path/file                          - upload file into workspace with name <wsname>
@@ -78,6 +95,13 @@ another workspace using
 _http://localhost:8080/deegree-webservices/config/restart/anotherworkspace_.
 To restart all resources connected a specific one use eg.
 _http://localhost:8080/deegree-webservices/config/restart/datasources/feature/inspire_.
+
+==== Updating
+
+You can update the currently running workspace using
+`http://localhost:8080/deegree-webservices/config/update`,
+or by name `http://localhost:8080/deegree-webservices/config/update/thisworkspace`.
+Updating a workspace means that all resource changed since the last update or restart are restarted.
 
 ==== Listing
 

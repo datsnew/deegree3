@@ -8,41 +8,14 @@
   <parent>
     <groupId>org.deegree</groupId>
     <artifactId>deegree-core</artifactId>
-    <version>3.4.13</version>
+    <version>3.5.6</version>
   </parent>
-
-  <repositories>
-    <repository>
-      <id>deegree-repo</id>
-      <url>http://repo.deegree.org/content/groups/public</url>
-      <releases>
-        <updatePolicy>never</updatePolicy>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
-  <profiles>
-    <profile>
-      <id>oracle</id>
-      <modules>
-        <module>deegree-sqldialect-oracle</module>
-      </modules>
-    </profile>
-    <profile>
-      <id>mssql</id>
-      <modules>
-        <module>deegree-sqldialect-mssql</module>
-      </modules>
-    </profile>
-  </profiles>
 
   <modules>
     <module>deegree-sqldialect-commons</module>
     <module>deegree-sqldialect-postgis</module>
+    <module>deegree-sqldialect-oracle</module>
+    <module>deegree-sqldialect-mssql</module>
   </modules>
-
 </project>
 

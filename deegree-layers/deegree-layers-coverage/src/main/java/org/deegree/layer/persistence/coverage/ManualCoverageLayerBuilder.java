@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2012 by:
@@ -58,46 +57,51 @@ import org.deegree.layer.persistence.LayerStore;
 import org.deegree.layer.persistence.MultipleLayerStore;
 import org.deegree.layer.persistence.coverage.jaxb.CoverageLayerType;
 import org.deegree.layer.persistence.coverage.jaxb.CoverageLayers;
+import org.deegree.layer.persistence.coverage.jaxb.FeatureInfoModeType;
 import org.deegree.style.se.unevaluated.Style;
 import org.deegree.workspace.ResourceMetadata;
 import org.deegree.workspace.Workspace;
 
 /**
  * Converts manual coverage layer config beans to layers.
- * 
+ *
  * @author <a href="mailto:schmitz@occamlabs.de">Andreas Schmitz</a>
- * @author last edited by: $Author: stranger $
- * 
- * @version $Revision: $, $Date: $
  */
 class ManualCoverageLayerBuilder {
 
-    private Workspace workspace;
+	private Workspace workspace;
 
-    private ResourceMetadata<LayerStore> metadata;
+	private ResourceMetadata<LayerStore> metadata;
 
-    ManualCoverageLayerBuilder( Workspace workspace, ResourceMetadata<LayerStore> metadata ) {
-        this.workspace = workspace;
-        this.metadata = metadata;
-    }
+	ManualCoverageLayerBuilder(Workspace workspace, ResourceMetadata<LayerStore> metadata) {
+		this.workspace = workspace;
+		this.metadata = metadata;
+	}
 
-    LayerStore buildManual( CoverageLayers cfg ) {
-        Map<String, Layer> map = new HashMap<String, Layer>();
+	LayerStore buildManual(CoverageLayers cfg) {
+		Map<String, Layer> map = new HashMap<String, Layer>();
 
-        Coverage cov = workspace.getResource( CoverageProvider.class, cfg.getCoverageStoreId() );
+		Coverage cov = workspace.getResource(CoverageProvider.class, cfg.getCoverageStoreId());
 
-        for ( CoverageLayerType lay : cfg.getCoverageLayer() ) {
-            LayerMetadata md = buildLayerMetadata( lay, cov );
+		for (CoverageLayerType lay : cfg.getCoverageLayer()) {
+			LayerMetadata md = buildLayerMetadata(lay, cov);
+			CoverageFeatureInfoMode infoMode = null;
+			if (FeatureInfoModeType.POINT == lay.getFeatureInfoMode()) {
+				infoMode = CoverageFeatureInfoMode.POINT;
+			}
+			else if (FeatureInfoModeType.INTERPOLATION == lay.getFeatureInfoMode()) {
+				infoMode = CoverageFeatureInfoMode.INTERPOLATION;
+			}
 
-            Pair<Map<String, Style>, Map<String, Style>> p = parseStyles( workspace, lay.getName(), lay.getStyleRef() );
-            md.setStyles( p.first );
-            md.setLegendStyles( p.second );
-            Layer l = new CoverageLayer( md, cov instanceof AbstractRaster ? (AbstractRaster) cov : null,
-                                         cov instanceof MultiResolutionRaster ? (MultiResolutionRaster) cov : null );
-            map.put( lay.getName(), l );
-        }
+			Pair<Map<String, Style>, Map<String, Style>> p = parseStyles(workspace, lay.getName(), lay.getStyleRef());
+			md.setStyles(p.first);
+			md.setLegendStyles(p.second);
+			Layer l = new CoverageLayer(md, cov instanceof AbstractRaster ? (AbstractRaster) cov : null,
+					cov instanceof MultiResolutionRaster ? (MultiResolutionRaster) cov : null, infoMode);
+			map.put(lay.getName(), l);
+		}
 
-        return new MultipleLayerStore( map, metadata );
-    }
+		return new MultipleLayerStore(map, metadata);
+	}
 
 }

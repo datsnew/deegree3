@@ -36,7 +36,7 @@ layer stores you intend to use:
 
 [source,xml]
 ----
-<Themes configVersion="3.4.0" xmlns="http://www.deegree.org/themes/standard"
+<Themes xmlns="http://www.deegree.org/themes/standard"
                               xmlns:d="http://www.deegree.org/metadata/description"
                               xmlns:s="http://www.deegree.org/metadata/spatial">
 
@@ -91,6 +91,29 @@ mechanism can be used to combine multiple layers (configuration wise)
 into one (WMS wise, in deegree terms it would be one theme with multiple
 layers).
 
+The following table summarizes the configuration of a theme:
+
+[width="100%",cols="23%,13%,18%,46%",options="header",]
+|===
+|Option |Cardinality |Value |Description
+|Identifier |0..1 |String |The unique identifier of the layer
+
+|_Description_ |0..1 |Several |The link:#description[description]
+elements described above, *Title* is mandatory
+
+|_Spatial metadata_ |0..1 |Several |The link:#spatial[spatial] metadata
+elements described above
+
+|LegendGraphic |0..1 |String |Reference to a LegendGraphic
+
+|Layer |0..n |String |Identifier of the Layer
+
+|Theme |0..1 |Several | Subthemes of the theme
+|===
+
+The optional LegendGraphic element can be used to configure a legend graphic for a theme grouping multiple layer or subthemes. The LegendGraphic can be a local file or remote reference. A remote reference is not recommended for production instances of deegree due to possible availability dropouts and security reasons.
+The attribute _outputGetLegendGraphicUrl_ (default value is _true_) defines if the _OnlineResource_ of _LegendURL_ contains a _GetLegendGraphic_ request (_outputGetLegendGraphicUrl="true"_) or references the remote resource directly (_outputGetLegendGraphicUrl="false"_).
+
 === Remote WMS themes
 
 The remote WMS theme configuration can be used to extract a theme from a
@@ -103,7 +126,7 @@ should be extracted:
 
 [source,xml]
 ----
-<RemoteWMSThemes xmlns="http://www.deegree.org/themes/remotewms" configVersion="3.4.0">
+<RemoteWMSThemes xmlns="http://www.deegree.org/themes/remotewms">
   <RemoteWMSId>d3</RemoteWMSId>
   <LayerStoreId>d3</LayerStoreId>
 </RemoteWMSThemes>

@@ -48,8 +48,10 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
+import org.apache.axiom.om.OMElement;
 import org.deegree.commons.ows.metadata.DatasetMetadata;
 import org.deegree.commons.ows.metadata.Description;
+import org.deegree.commons.ows.metadata.ExtendedDescription;
 import org.deegree.commons.ows.metadata.MetadataUrl;
 import org.deegree.commons.ows.metadata.layer.Attribution;
 import org.deegree.commons.ows.metadata.layer.ExternalIdentifier;
@@ -65,66 +67,67 @@ import org.deegree.theme.Theme;
  * Creates {@link DatasetMetadata} objects from {@link LayerMetadata}.
  *
  * @author <a href="mailto:schneider@occamlabs.de">Markus Schneider</a>
- *
  * @since 3.3
  */
 class DatasetMetadataFactory {
 
-    DatasetMetadata buildDatasetMetadata( final LayerMetadata layerMetadata, final Theme theme,
-                                          final String mdUrlTemplate ) {
-        String localName = layerMetadata.getName();
-        if ( localName == null ) {
-            localName = "unnamed";
-        }
-        final QName name = new QName( localName );
-        final List<LanguageString> titles = new ArrayList<LanguageString>();
-        final List<LanguageString> abstracts = new ArrayList<LanguageString>();
-        final List<Pair<List<LanguageString>, CodeType>> keywords = new ArrayList<Pair<List<LanguageString>, CodeType>>();
-        final String metadataSetId = getFirstMetadataSetId( theme );
-        final String metadataSetUrl = getUrlForMetadataSetId( metadataSetId, mdUrlTemplate );
-        final Description description = layerMetadata.getDescription();
-        if ( description != null ) {
-            if ( description.getTitles() != null ) {
-                titles.addAll( description.getTitles() );
-            }
-            if ( description.getAbstracts() != null ) {
-                abstracts.addAll( description.getAbstracts() );
-            }
-            if ( description.getKeywords() != null ) {
-                keywords.addAll( description.getKeywords() );
-            }
-        }
-        final List<MetadataUrl> metadataUrls = new ArrayList<MetadataUrl>();
-        if ( metadataSetUrl != null ) {
-            metadataUrls.add( new MetadataUrl( metadataSetUrl, null, null ) );
-        }
-        final List<ExternalIdentifier> externalIds = new ArrayList<ExternalIdentifier>();
-        if ( metadataSetId != null ) {
-            externalIds.add( new ExternalIdentifier( metadataSetId, null ) );
-        }
-        final List<UrlWithFormat> dataUrls = null;
-        final List<UrlWithFormat> featureListUrls = null;
-        final Attribution attribution = null;
-        return new DatasetMetadata( name, titles, abstracts, keywords, metadataUrls, externalIds, dataUrls,
-                                    featureListUrls, attribution );
-    }
+	DatasetMetadata buildDatasetMetadata(final LayerMetadata layerMetadata, final Theme theme,
+			final String mdUrlTemplate) {
+		String localName = layerMetadata.getName();
+		if (localName == null) {
+			localName = "unnamed";
+		}
+		final QName name = new QName(localName);
+		final List<LanguageString> titles = new ArrayList<LanguageString>();
+		final List<LanguageString> abstracts = new ArrayList<LanguageString>();
+		final List<Pair<List<LanguageString>, CodeType>> keywords = new ArrayList<Pair<List<LanguageString>, CodeType>>();
+		final String metadataSetId = getFirstMetadataSetId(theme);
+		final String metadataSetUrl = getUrlForMetadataSetId(metadataSetId, mdUrlTemplate);
+		final Description description = layerMetadata.getDescription();
+		if (description != null) {
+			if (description.getTitles() != null) {
+				titles.addAll(description.getTitles());
+			}
+			if (description.getAbstracts() != null) {
+				abstracts.addAll(description.getAbstracts());
+			}
+			if (description.getKeywords() != null) {
+				keywords.addAll(description.getKeywords());
+			}
+		}
+		final List<MetadataUrl> metadataUrls = new ArrayList<MetadataUrl>();
+		if (metadataSetUrl != null) {
+			metadataUrls.add(new MetadataUrl(metadataSetUrl, null, null));
+		}
+		final List<ExternalIdentifier> externalIds = new ArrayList<ExternalIdentifier>();
+		if (metadataSetId != null) {
+			externalIds.add(new ExternalIdentifier(metadataSetId, null));
+		}
+		final List<UrlWithFormat> dataUrls = null;
+		final List<UrlWithFormat> featureListUrls = null;
+		final Attribution attribution = null;
+		final List<ExtendedDescription> extendedDescriptions = null;
+		return new DatasetMetadata(name, titles, abstracts, keywords, metadataUrls, externalIds, dataUrls,
+				featureListUrls, attribution, extendedDescriptions);
+	}
 
-    private String getFirstMetadataSetId( final Theme theme ) {
-        if ( theme.getLayerMetadata().getMetadataId() != null ) {
-            return theme.getLayerMetadata().getMetadataId();
-        }
-        for ( final Layer layer : getAllLayers( theme ) ) {
-            if ( layer.getMetadata().getMetadataId() != null ) {
-                return layer.getMetadata().getMetadataId();
-            }
-        }
-        return null;
-    }
+	private String getFirstMetadataSetId(final Theme theme) {
+		if (theme.getLayerMetadata().getMetadataId() != null) {
+			return theme.getLayerMetadata().getMetadataId();
+		}
+		for (final Layer layer : getAllLayers(theme)) {
+			if (layer.getMetadata().getMetadataId() != null) {
+				return layer.getMetadata().getMetadataId();
+			}
+		}
+		return null;
+	}
 
-    private String getUrlForMetadataSetId( final String id, final String mdUrlTemplate ) {
-        if ( id == null || mdUrlTemplate == null ) {
-            return null;
-        }
-        return replaceAll( mdUrlTemplate, "${metadataSetId}", id );
-    }
+	private String getUrlForMetadataSetId(final String id, final String mdUrlTemplate) {
+		if (id == null || mdUrlTemplate == null) {
+			return null;
+		}
+		return replaceAll(mdUrlTemplate, "${metadataSetId}", id);
+	}
+
 }

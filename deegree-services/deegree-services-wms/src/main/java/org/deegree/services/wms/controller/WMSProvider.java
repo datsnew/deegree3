@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2010 by:
@@ -50,43 +49,38 @@ import org.deegree.workspace.ResourceMetadata;
 import org.deegree.workspace.Workspace;
 
 /**
- * 
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
  */
 public class WMSProvider extends OWSProvider {
 
-    protected static final ImplementationMetadata<WMSRequestType> IMPLEMENTATION_METADATA = new ImplementationMetadata<WMSRequestType>() {
-        {
-            supportedVersions = new Version[] { VERSION_111, VERSION_130 };
-            handledNamespaces = new String[] { "" }; // WMS uses null namespace for SLD GetMap Post requests
-            handledRequests = WMSRequestType.class;
-            supportedConfigVersions = new Version[] { Version.parseVersion( "3.0.0" ), Version.parseVersion( "3.1.0" ),
-                                                     Version.parseVersion( "3.2.0" ), Version.parseVersion( "3.4.0" ) };
-            serviceName = new String[] { "WMS" };
-        }
-    };
+	protected static final ImplementationMetadata<WMSRequestType> IMPLEMENTATION_METADATA = new ImplementationMetadata<WMSRequestType>() {
+		{
+			supportedVersions = new Version[] { VERSION_111, VERSION_130 };
+			handledNamespaces = new String[] { "" }; // WMS uses null namespace for SLD
+														// GetMap Post requests
+			handledRequests = WMSRequestType.class;
+			serviceName = new String[] { "WMS" };
+		}
+	};
 
-    @Override
-    public String getNamespace() {
-        return "http://www.deegree.org/services/wms";
-    }
+	@Override
+	public String getNamespace() {
+		return "http://www.deegree.org/services/wms";
+	}
 
-    @Override
-    public URL getSchema() {
-        return WMSProvider.class.getResource( "/META-INF/schemas/services/wms/3.4.0/wms_configuration.xsd" );
-    }
+	@Override
+	public URL getSchema() {
+		return WMSProvider.class.getResource("/META-INF/schemas/services/wms/wms_configuration.xsd");
+	}
 
-    @Override
-    public ImplementationMetadata<WMSRequestType> getImplementationMetadata() {
-        return IMPLEMENTATION_METADATA;
-    }
+	@Override
+	public ImplementationMetadata<WMSRequestType> getImplementationMetadata() {
+		return IMPLEMENTATION_METADATA;
+	}
 
-    @Override
-    public ResourceMetadata<OWS> createFromLocation( Workspace workspace, ResourceLocation<OWS> location ) {
-        return new WmsMetadata( workspace, location, this );
-    }
+	@Override
+	public ResourceMetadata<OWS> createFromLocation(Workspace workspace, ResourceLocation<OWS> location) {
+		return new WmsMetadata(workspace, location, this);
+	}
 
 }

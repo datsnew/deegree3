@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2009 by:
@@ -37,8 +36,6 @@ package org.deegree.coverage.raster.io.imageio;
 
 import static org.deegree.coverage.raster.utils.RasterFactory.rasterDataFromImage;
 
-import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageReader;
-
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.Raster;
@@ -55,7 +52,10 @@ import javax.imageio.ImageTypeSpecifier;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.stream.ImageInputStream;
 
+import it.geosolutions.imageioimpl.plugins.tiff.TIFFImageReader;
+import org.deegree.commons.utils.TunableParameter;
 import org.deegree.coverage.raster.cache.ByteBufferPool;
+import org.deegree.coverage.raster.cache.RasterCache;
 import org.deegree.coverage.raster.data.container.BufferResult;
 import org.deegree.coverage.raster.data.info.BandType;
 import org.deegree.coverage.raster.data.info.DataType;
@@ -70,404 +70,421 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
- * 
  * @author <a href="mailto:tonnhofer@lat-lon.de">Oliver Tonnhofer</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
- * 
+ *
  */
 public class IIORasterDataReader implements RasterDataReader {
 
-    // io handles
-    private File file;
+	private static final boolean CACHE_DISABLED;
 
-    private final Object LOCK = new Object();
+	static {
+		CACHE_DISABLED = !TunableParameter.get("deegree.raster.cache.iioreader", true);
+		if (!CACHE_DISABLED) {
+			LoggerFactory.getLogger(IIORasterDataReader.class)
+				.info("IIORaster cache is disabled for file based resources via system property!");
+		}
+	}
 
-    private InputStream inputStream;
+	// io handles
+	private File file;
 
-    /* true if an mark supported input stream is the datasource */
-    private final boolean resetableStream;
+	private final Object LOCK = new Object();
 
-    private int width = -1;
+	private InputStream inputStream;
 
-    private int height = -1;
+	/* true if an mark supported input stream is the datasource */
+	private final boolean resetableStream;
 
-    private IIOMetadata metaData;
+	private int width = -1;
 
-    private String format;
+	private int height = -1;
 
-    private static Logger LOG = LoggerFactory.getLogger( IIORasterDataReader.class );
+	private IIOMetadata metaData;
 
-    private ImageReader reader;
+	private String format;
 
-    // flags which define if a read failed.
-    private boolean retrievalOfReadersFailed = false;
+	private static Logger LOG = LoggerFactory.getLogger(IIORasterDataReader.class);
 
-    private boolean metadataReadFailed = false;
+	private ImageReader reader;
 
-    private boolean rdiReadFailed = false;
+	// flags which define if a read failed.
+	private boolean retrievalOfReadersFailed = false;
 
-    private boolean heightReadFailed = false;
+	private boolean metadataReadFailed = false;
 
-    private boolean widthReadFailed = false;
+	private boolean rdiReadFailed = false;
 
-    private boolean imageReadFailed = false;
+	private boolean heightReadFailed = false;
 
-    private RasterIOOptions options;
+	private boolean widthReadFailed = false;
 
-    private RasterDataInfo rdi;
+	private boolean imageReadFailed = false;
 
-    private final int imageIndex;
+	private RasterIOOptions options;
 
-    /**
-     * Create a IIORasterDataReader for given file
-     * 
-     * @param file
-     *            file to read
-     * @param options
-     *            with values.
-     */
-    public IIORasterDataReader( File file, RasterIOOptions options, int imageIndex ) {
-        this( options, false, imageIndex );
-        this.file = file;
-    }
+	private RasterDataInfo rdi;
 
-    /**
-     * Create a IIORasterDataReader for given stream
-     * 
-     * @param stream
-     *            stream to read
-     * @param options
-     *            with values
-     */
-    public IIORasterDataReader( InputStream stream, RasterIOOptions options, int imageIndex ) {
-        this( options, ( stream != null && stream.markSupported() ), imageIndex );
-        this.inputStream = stream;
-    }
+	private final int imageIndex;
 
-    private IIORasterDataReader( RasterIOOptions options, boolean resetableStream, int imageIndex ) {
-        this.imageIndex = imageIndex;
-        this.format = options.get( RasterIOOptions.OPT_FORMAT );
-        this.options = options;
-        this.resetableStream = resetableStream;
-    }
+	private final boolean forceNoCache;
 
-    /**
-     * Reads data and returns a new RasterData object
-     * 
-     * @return new RasterData
-     */
-    @Override
-    public ByteBufferRasterData read() {
-        BufferedImage result = null;
-        synchronized ( LOCK ) {
-            if ( !imageReadFailed && findReaderForIO() ) {
-                try {
-                    result = reader.read( imageIndex );
-                    resetStream();
-                    return RasterFactory.rasterDataFromImage( result, options );
-                } catch ( IOException e ) {
-                    LOG.error( "couldn't open image:" + e.getMessage(), e );
-                    this.imageReadFailed = true;
-                }
-            }
-        }
-        return rasterDataFromImage( result, options );
-    }
+	/**
+	 * Create a IIORasterDataReader for given file
+	 * @param file file to read
+	 * @param options with values.
+	 */
+	public IIORasterDataReader(File file, RasterIOOptions options, int imageIndex) {
+		this(options, false, imageIndex, CACHE_DISABLED || RasterCache.hasNoCacheFile(file, imageIndex));
+		this.file = file;
+	}
 
-    /**
-     * 
-     */
-    private void resetStream() {
-        // if ( resetableStream ) {
-        // try {
-        // inputStream.reset();
-        // } catch ( IOException e ) {
-        // // could not reset, but this should not happen.
-        // }
-        // }
-        // if ( reader != null && reader.getInput() != null ) {
-        // try {
-        // ( (ImageInputStream) reader.getInput() ).seek( 0 );
-        // } catch ( IOException e ) {
-        // // could not reset.
-        // }
-        // }
-    }
+	/**
+	 * Create a IIORasterDataReader for given stream
+	 * @param stream stream to read
+	 * @param options with values
+	 */
+	public IIORasterDataReader(InputStream stream, RasterIOOptions options, int imageIndex) {
+		this(options, (stream != null && stream.markSupported()), imageIndex, false);
+		this.inputStream = stream;
+	}
 
-    /**
-     * Returns the height of the raster associated with the reader
-     * 
-     * @return raster height
-     */
-    public int getColumns() {
-        synchronized ( LOCK ) {
-            if ( width == -1 && !widthReadFailed && findReaderForIO() ) {
-                try {
-                    width = reader.getWidth( imageIndex );
-                } catch ( IOException e ) {
-                    LOG.debug( "couldn't open image for width:" + e.getMessage(), e );
-                    this.widthReadFailed = true;
-                }
-                resetStream();
-            }
-        }
-        return width;
-    }
+	private IIORasterDataReader(RasterIOOptions options, boolean resetableStream, int imageIndex,
+			boolean forceNoCache) {
+		this.imageIndex = imageIndex;
+		this.format = options.get(RasterIOOptions.OPT_FORMAT);
+		this.options = options;
+		this.resetableStream = resetableStream;
+		this.forceNoCache = forceNoCache;
+	}
 
-    /**
-     * Returns the height of the raster associated with the reader
-     * 
-     * @return raster height
-     */
-    public int getRows() {
-        synchronized ( LOCK ) {
-            if ( height == -1 && !heightReadFailed && findReaderForIO() ) {
-                try {
-                    height = reader.getHeight( imageIndex );
-                } catch ( IOException e ) {
-                    LOG.debug( "couldn't open image for height:" + e.getMessage(), e );
-                    this.heightReadFailed = true;
-                }
-                resetStream();
-            }
-        }
-        return height;
-    }
+	/**
+	 * Reads data and returns a new RasterData object
+	 * @return new RasterData
+	 */
+	@Override
+	public ByteBufferRasterData read() {
+		BufferedImage result = null;
+		synchronized (LOCK) {
+			if (!imageReadFailed && findReaderForIO()) {
+				try {
+					result = reader.read(imageIndex);
+					resetStream();
+					return RasterFactory.rasterDataFromImage(result, options);
+				}
+				catch (IOException e) {
+					LOG.error("couldn't open image:" + e.getMessage(), e);
+					this.imageReadFailed = true;
+				}
+			}
+		}
+		return rasterDataFromImage(result, options);
+	}
 
-    /**
-     * @return the raw metadata of the raster
-     */
-    protected IIOMetadata getMetaData() {
-        // md == null,
-        // 1. didn't read the metadata
-        // 2. the reader couldn't read it, just do not try again.
-        // 3.
-        synchronized ( LOCK ) {
-            if ( metaData == null && !metadataReadFailed && findReaderForIO() ) {
-                try {
-                    metaData = reader.getImageMetadata( 0 );
-                } catch ( IOException e ) {
-                    LOG.debug( "couldn't open metadata:" + e.getMessage(), e );
-                    this.metadataReadFailed = true;
-                }
-                resetStream();
-            }
-        }
-        return metaData;
-    }
+	/**
+	 *
+	 */
+	private void resetStream() {
+		// if ( resetableStream ) {
+		// try {
+		// inputStream.reset();
+		// } catch ( IOException e ) {
+		// // could not reset, but this should not happen.
+		// }
+		// }
+		// if ( reader != null && reader.getInput() != null ) {
+		// try {
+		// ( (ImageInputStream) reader.getInput() ).seek( 0 );
+		// } catch ( IOException e ) {
+		// // could not reset.
+		// }
+		// }
+	}
 
-    /**
-     * @return the raster data info object describing the data to be read.
-     */
-    public RasterDataInfo getRasterDataInfo() {
-        synchronized ( LOCK ) {
-            if ( rdi == null && !rdiReadFailed && findReaderForIO() ) {
-                try {
-                    Iterator<ImageTypeSpecifier> imageTypes = reader.getImageTypes( imageIndex );
-                    while ( imageTypes.hasNext() && rdi == null ) {
-                        ImageTypeSpecifier its = imageTypes.next();
-                        if ( its != null ) {
-                            BufferedImage bi = its.createBufferedImage( 2, 2 );
-                            BandType[] bands = BandType.fromBufferedImageType( bi.getType(), its.getNumBands(),
-                                                                               bi.getRaster().getSampleModel() );
-                            DataType type = DataType.fromDataBufferType( its.getSampleModel().getDataType() );
+	/**
+	 * Returns the height of the raster associated with the reader
+	 * @return raster height
+	 */
+	public int getColumns() {
+		synchronized (LOCK) {
+			if (width == -1 && !widthReadFailed && findReaderForIO()) {
+				try {
+					width = reader.getWidth(imageIndex);
+				}
+				catch (IOException e) {
+					LOG.debug("couldn't open image for width:" + e.getMessage(), e);
+					this.widthReadFailed = true;
+				}
+				resetStream();
+			}
+		}
+		return width;
+	}
 
-                            if ( type != DataType.FLOAT && type != DataType.DOUBLE && type != DataType.BYTE
-                                 && bands.length > 1 ) {
-                                type = DataType.BYTE;
-                                boolean alphaLast = ( bands.length == 4 ) && ( bands[3] == BandType.ALPHA );
-                                bands[0] = BandType.RED;
-                                bands[1] = BandType.GREEN;
-                                bands[2] = BandType.BLUE;
-                                if ( bands.length == 4 && !alphaLast ) {
-                                    bands[3] = BandType.ALPHA;
-                                }
-                            }
-                            rdi = new RasterDataInfo( bands, type, InterleaveType.PIXEL );
-                        }
-                    }
+	/**
+	 * Returns the height of the raster associated with the reader
+	 * @return raster height
+	 */
+	public int getRows() {
+		synchronized (LOCK) {
+			if (height == -1 && !heightReadFailed && findReaderForIO()) {
+				try {
+					height = reader.getHeight(imageIndex);
+				}
+				catch (IOException e) {
+					LOG.debug("couldn't open image for height:" + e.getMessage(), e);
+					this.heightReadFailed = true;
+				}
+				resetStream();
+			}
+		}
+		return height;
+	}
 
-                } catch ( IOException e ) {
-                    LOG.debug( "couldn't create a raster data info object:" + e.getMessage(), e );
-                    rdiReadFailed = true;
-                }
-            }
-        }
-        return rdi;
-    }
+	/**
+	 * @return the raw metadata of the raster
+	 */
+	protected IIOMetadata getMetaData() {
+		// md == null,
+		// 1. didn't read the metadata
+		// 2. the reader couldn't read it, just do not try again.
+		// 3.
+		synchronized (LOCK) {
+			if (metaData == null && !metadataReadFailed && findReaderForIO()) {
+				try {
+					metaData = reader.getImageMetadata(0);
+				}
+				catch (IOException e) {
+					LOG.debug("couldn't open metadata:" + e.getMessage(), e);
+					this.metadataReadFailed = true;
+				}
+				resetStream();
+			}
+		}
+		return metaData;
+	}
 
-    /**
-     * Removes the internal references to the loaded raster to allow garbage collection of the raster.
-     */
-    @Override
-    public void close() {
-        synchronized ( LOCK ) {
-            if ( reader != null && reader.getInput() != null ) {
-                try {
-                    ( (ImageInputStream) reader.getInput() ).close();
-                } catch ( IOException e ) {
-                    LOG.debug( "Could not close the imagestream, ignoring.", e );
-                }
-            }
-        }
-    }
+	/**
+	 * @return the raster data info object describing the data to be read.
+	 */
+	public RasterDataInfo getRasterDataInfo() {
+		synchronized (LOCK) {
+			if (rdi == null && !rdiReadFailed && findReaderForIO()) {
+				try {
+					Iterator<ImageTypeSpecifier> imageTypes = reader.getImageTypes(imageIndex);
+					while (imageTypes.hasNext() && rdi == null) {
+						ImageTypeSpecifier its = imageTypes.next();
+						if (its != null) {
+							BufferedImage bi = its.createBufferedImage(2, 2);
+							BandType[] bands = BandType.fromBufferedImageType(bi.getType(), its.getNumBands(),
+									bi.getRaster().getSampleModel());
+							DataType type = DataType.fromDataBufferType(its.getSampleModel().getDataType());
 
-    /**
-     * Create an Imagereader from the file or the inputstream.
-     * 
-     * @return true if the creation of the image reader was successful.
-     */
-    private boolean findReaderForIO() {
-        synchronized ( LOCK ) {
-            if ( this.reader == null && !retrievalOfReadersFailed ) {
-                try {
-                    ImageInputStream iis = null;
-                    if ( file != null ) {
-                        iis = ImageIO.createImageInputStream( file );
-                    } else {
-                        if ( resetableStream ) {
-                            inputStream.mark( Integer.MAX_VALUE );
-                        }
-                        iis = ImageIO.createImageInputStream( inputStream );
-                    }
-                    Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName( format );
-                    while ( iter.hasNext() && !( reader instanceof TIFFImageReader ) ) {
-                        this.reader = iter.next();
-                    }
-                    if ( reader != null ) {
-                        reader.setInput( iis );
-                        // done creating a reader.
-                        return true;
-                    }
-                    LOG.error( "couldn't find ImageReader" );
-                    this.retrievalOfReadersFailed = true;
-                } catch ( IOException e ) {
-                    LOG.debug( "Could not open an ImageStream for "
-                                                       + ( ( file != null ) ? "file: " + file.getAbsolutePath()
-                                                                           : "stream " ) + ", because: "
-                                                       + e.getLocalizedMessage(), e );
-                    this.retrievalOfReadersFailed = true;
-                }
-            }
-            return ( this.reader != null && !retrievalOfReadersFailed );
-        }
-    }
+							if (type != DataType.FLOAT && type != DataType.DOUBLE && type != DataType.BYTE
+									&& bands.length > 1) {
+								type = DataType.BYTE;
+								boolean alphaLast = (bands.length == 4) && (bands[3] == BandType.ALPHA);
+								bands[0] = BandType.RED;
+								bands[1] = BandType.GREEN;
+								bands[2] = BandType.BLUE;
+								if (bands.length == 4 && !alphaLast) {
+									bands[3] = BandType.ALPHA;
+								}
+							}
+							rdi = new RasterDataInfo(bands, type, InterleaveType.PIXEL);
+						}
+					}
 
-    /**
-     * needed by the raster reader,
-     * 
-     * @return will return the file if any.
-     */
-    protected File file() {
-        return ( file != null ) ? file : null;
-    }
+				}
+				catch (IOException e) {
+					LOG.debug("couldn't create a raster data info object:" + e.getMessage(), e);
+					rdiReadFailed = true;
+				}
+			}
+		}
+		return rdi;
+	}
 
-    /**
-     * 
-     * @return true if the imageio thinks the file can be accessed easily
-     */
-    boolean shouldCreateCacheFile() {
-        boolean result = true;
-        try {
-            synchronized ( LOCK ) {
-                if ( findReaderForIO() ) {
-                    result = !reader.isRandomAccessEasy( imageIndex );
-                }
-            }
-        } catch ( IOException e ) {
-            LOG.debug( "Could not get easy access information from the imagereader, using configured value for using cache: "
-                                               + result, e );
-        }
-        return result;
-    }
+	/**
+	 * Removes the internal references to the loaded raster to allow garbage collection of
+	 * the raster.
+	 */
+	@Override
+	public void close() {
+		synchronized (LOCK) {
+			if (reader != null && reader.getInput() != null) {
+				try {
+					((ImageInputStream) reader.getInput()).close();
+				}
+				catch (IOException e) {
+					LOG.debug("Could not close the imagestream, ignoring.", e);
+				}
+			}
+		}
+	}
 
-    /**
-     * @param rect
-     * @param resultBuffer
-     * @return the buffer result containing the result buffer (instantiated if the given one was null) and the rect it
-     *         is valid for.
-     */
-    public BufferResult read( RasterRect rect, ByteBuffer resultBuffer ) {
-        BufferResult result = null;
-        ImageReadParam rp = new ImageReadParam();
-        Rectangle dataRect = new Rectangle( 0, 0, getColumns(), getRows() );
-        Rectangle intersection = dataRect.intersection( new Rectangle( rect.x, rect.y, rect.width, rect.height ) );
-        if ( intersection.width > 0 && intersection.height > 0 ) {
-            rp.setSourceRegion( intersection );
-            try {
-                BufferedImage img = null;
-                synchronized ( LOCK ) {
-                    if ( findReaderForIO() ) {
-                        img = reader.read( imageIndex, rp );
-                    }
-                }
-                if ( img != null ) {
-                    Raster raster = img.getRaster();
-                    if ( resultBuffer == null ) {
-                        RasterDataInfo rdi = getRasterDataInfo();
+	/**
+	 * Create an Imagereader from the file or the inputstream.
+	 * @return true if the creation of the image reader was successful.
+	 */
+	private boolean findReaderForIO() {
+		synchronized (LOCK) {
+			if (this.reader == null && !retrievalOfReadersFailed) {
+				try {
+					ImageInputStream iis = null;
+					if (file != null) {
+						iis = ImageIO.createImageInputStream(file);
+					}
+					else {
+						if (resetableStream) {
+							inputStream.mark(Integer.MAX_VALUE);
+						}
+						iis = ImageIO.createImageInputStream(inputStream);
+					}
+					Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName(format);
+					while (iter.hasNext() && !(reader instanceof TIFFImageReader)) {
+						this.reader = iter.next();
+					}
+					if (reader != null) {
+						reader.setInput(iis);
+						// done creating a reader.
+						return true;
+					}
+					LOG.error("couldn't find ImageReader");
+					this.retrievalOfReadersFailed = true;
+				}
+				catch (IOException e) {
+					LOG.debug("Could not open an ImageStream for "
+							+ ((file != null) ? "file: " + file.getAbsolutePath() : "stream ") + ", because: "
+							+ e.getLocalizedMessage(), e);
+					this.retrievalOfReadersFailed = true;
+				}
+			}
+			return (this.reader != null && !retrievalOfReadersFailed);
+		}
+	}
 
-                        resultBuffer = ByteBufferPool.allocate( rdi.bands * rdi.dataSize * intersection.width
-                                                                * intersection.height, false );
-                    }
+	/**
+	 * needed by the raster reader,
+	 * @return will return the file if any.
+	 */
+	protected File file() {
+		return (file != null) ? file : null;
+	}
 
-                    // DataBuffer buffer = raster.getDataBuffer();
-                    int imgDataType = raster.getSampleModel().getDataType();
-                    DataType type = DataType.fromDataBufferType( imgDataType );
-                    RasterFactory.rasterToByteBuffer( raster, 0, 0, img.getWidth(), img.getHeight(), type, resultBuffer );
-                    result = new BufferResult( new RasterRect( intersection ), resultBuffer );
-                }
-            } catch ( IOException e ) {
-                LOG.debug( "Could not read the given rect: " + rect + " because: " + e.getLocalizedMessage(), e );
-            }
-        }
-        return result;
-    }
+	/**
+	 * @return true if the imageio thinks the file can be accessed easily
+	 */
+	boolean shouldCreateCacheFile() {
+		if (forceNoCache) {
+			LOG.debug("cache for reader with file {} and index {} disabbled by no-cache-file/system-property", file,
+					imageIndex);
+			return false;
+		}
 
-    /**
-     * @return true if random access is easy for the image io reader.
-     */
-    public boolean getReadTiles() {
-        boolean result = false;
-        synchronized ( LOCK ) {
-            if ( findReaderForIO() ) {
-                try {
-                    result = reader != null ? reader.isRandomAccessEasy( imageIndex ) : false;
-                } catch ( IOException e ) {
-                    // just do nothing.
-                }
-            }
-        }
+		boolean result = true;
+		try {
+			synchronized (LOCK) {
+				if (findReaderForIO()) {
+					result = !reader.isRandomAccessEasy(imageIndex);
+				}
+			}
+		}
+		catch (IOException e) {
+			LOG.debug(
+					"Could not get easy access information from the imagereader, using configured value for using cache: "
+							+ result,
+					e);
+		}
+		return result;
+	}
 
-        return result;
-    }
+	/**
+	 * @param rect
+	 * @param resultBuffer
+	 * @return the buffer result containing the result buffer (instantiated if the given
+	 * one was null) and the rect it is valid for.
+	 */
+	public BufferResult read(RasterRect rect, ByteBuffer resultBuffer) {
+		BufferResult result = null;
+		ImageReadParam rp = new ImageReadParam();
+		Rectangle dataRect = new Rectangle(0, 0, getColumns(), getRows());
+		Rectangle intersection = dataRect.intersection(new Rectangle(rect.x, rect.y, rect.width, rect.height));
+		if (intersection.width > 0 && intersection.height > 0) {
+			rp.setSourceRegion(intersection);
+			try {
+				BufferedImage img = null;
+				synchronized (LOCK) {
+					if (findReaderForIO()) {
+						img = reader.read(imageIndex, rp);
+					}
+				}
+				if (img != null) {
+					Raster raster = img.getRaster();
+					if (resultBuffer == null) {
+						RasterDataInfo rdi = getRasterDataInfo();
 
-    /**
-     * 
-     */
-    public void dispose() {
-        // only close the inputstream if it was read from a file.
-        if ( file != null ) {
-            synchronized ( LOCK ) {
-                if ( reader != null && file != null ) {
-                    reader.dispose();
-                    if ( reader.getInput() != null ) {
-                        Object input = reader.getInput();
-                        if ( input instanceof ImageInputStream ) {
-                            try {
-                                ( (ImageInputStream) input ).close();
-                            } catch ( IOException e ) {
-                                LOG.debug( "Error while disposing: ", e );
-                            }
-                        }
-                    }
-                }
-                // set the reader to null.
-                reader = null;
-            }
-        }
-    }
+						resultBuffer = ByteBufferPool
+							.allocate(rdi.bands * rdi.dataSize * intersection.width * intersection.height, false);
+					}
+
+					// DataBuffer buffer = raster.getDataBuffer();
+					int imgDataType = raster.getSampleModel().getDataType();
+					DataType type = DataType.fromDataBufferType(imgDataType);
+					RasterFactory.rasterToByteBuffer(raster, 0, 0, img.getWidth(), img.getHeight(), type, resultBuffer);
+					result = new BufferResult(new RasterRect(intersection), resultBuffer);
+				}
+			}
+			catch (IOException e) {
+				LOG.debug("Could not read the given rect: " + rect + " because: " + e.getLocalizedMessage(), e);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * @return true if random access is easy for the image io reader.
+	 */
+	public boolean getReadTiles() {
+		boolean result = false;
+		synchronized (LOCK) {
+			if (findReaderForIO()) {
+				try {
+					result = reader != null ? reader.isRandomAccessEasy(imageIndex) : false;
+				}
+				catch (IOException e) {
+					// just do nothing.
+				}
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 *
+	 */
+	public void dispose() {
+		// only close the inputstream if it was read from a file.
+		if (file != null) {
+			synchronized (LOCK) {
+				if (reader != null && file != null) {
+					reader.dispose();
+					if (reader.getInput() != null) {
+						Object input = reader.getInput();
+						if (input instanceof ImageInputStream) {
+							try {
+								((ImageInputStream) input).close();
+							}
+							catch (IOException e) {
+								LOG.debug("Error while disposing: ", e);
+							}
+						}
+					}
+				}
+				// set the reader to null.
+				reader = null;
+			}
+		}
+	}
 
 }

@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2009 by:
@@ -36,75 +35,101 @@
 package org.deegree.featureinfo.templating.lang;
 
 import static org.deegree.commons.utils.JavaUtils.generateToString;
+import static org.deegree.commons.xml.CommonNamespaces.XLNNS;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.Map;
+
+import javax.xml.namespace.QName;
+
+import org.deegree.commons.tom.TypedObjectNode;
 import org.deegree.commons.tom.gml.property.Property;
+import org.deegree.commons.tom.primitive.PrimitiveValue;
+import org.deegree.commons.xml.CommonNamespaces;
+import org.deegree.gml.reference.FeatureReference;
 import org.slf4j.Logger;
 
 /**
  * <code>Link</code>
- * 
+ *
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
  */
 public class Link {
 
-    private static final Logger LOG = getLogger( Link.class );
+	private static final Logger LOG = getLogger(Link.class);
 
-    private String prefix;
+	public static final QName XLINK_HREF = new QName(XLNNS, "href");
 
-    private String text;
+	private String prefix;
 
-    /**
-     * @param prefix
-     */
-    public Link( String prefix ) {
-        this.prefix = prefix;
-    }
+	private String text;
 
-    /**
-     * @param prefix
-     * @param text
-     */
-    public Link( String prefix, String text ) {
-        this.prefix = prefix;
-        if ( text != null ) {
-            // TODO price question: what's the Java Way to sgml-quote?
-            text = text.replace( "&", "&amp;" );
-        }
-        this.text = text;
-    }
+	/**
+	 * @param prefix
+	 */
+	public Link(String prefix) {
+		this.prefix = prefix;
+	}
 
-    /**
-     * @param sb
-     * @param o
-     */
-    public void eval( StringBuilder sb, Object o ) {
-        if ( !( o instanceof Property ) ) {
-            LOG.warn( "Trying to get value as link while current object is a feature." );
-            return;
-        }
-        String val = ( (Property) o ).getValue().toString();
-        if ( val == null || val.isEmpty() ) {
-            return;
-        }
-        // TODO: what is wanted is a real check for validity. org.apache.xerces.util.URI.isWellFormedAddress has been
-        // tried and seems not to work
-        if ( !val.startsWith( "http://" ) && !val.startsWith( "https://" ) && !val.startsWith( "ftp://" ) ) {
-            val = prefix == null ? val : ( prefix + val );
-        }
-        // TODO price question: what's the Java Way to sgml-quote?
-        val = val.replace( "&", "&amp;" );
-        sb.append( "<a target='_blank' href='" ).append( val ).append( "'>" );
-        sb.append( text == null ? val : text );
-        sb.append( "</a>" );
-    }
+	/**
+	 * @param prefix
+	 * @param text
+	 */
+	public Link(String prefix, String text) {
+		this.prefix = prefix;
+		if (text != null) {
+			// TODO price question: what's the Java Way to sgml-quote?
+			text = text.replace("&", "&amp;");
+		}
+		this.text = text;
+	}
 
-    @Override
-    public String toString() {
-        return generateToString( this );
-    }
+	/**
+	 * @param sb
+	 * @param o
+	 */
+	public void eval(StringBuilder sb, Object o) {
+		if (!(o instanceof Property)) {
+			LOG.warn("Trying to get value as link while current object is a feature.");
+			return;
+		}
+		String val = getValueAsString((Property) o);
+		if (val == null || val.isEmpty()) {
+			return;
+		}
+		// TODO: what is wanted is a real check for validity.
+		// org.apache.xerces.util.URI.isWellFormedAddress has been
+		// tried and seems not to work
+		if (!val.startsWith("http://") && !val.startsWith("https://") && !val.startsWith("ftp://")) {
+			val = prefix == null ? val : (prefix + val);
+		}
+		// TODO price question: what's the Java Way to sgml-quote?
+		val = val.replace("&", "&amp;");
+		sb.append("<a target='_blank' href='").append(val).append("'>");
+		sb.append(text == null ? val : text);
+		sb.append("</a>");
+	}
+
+	@Override
+	public String toString() {
+		return generateToString(this);
+	}
+
+	private String getValueAsString(Property o) {
+		TypedObjectNode value = o.getValue();
+		if (value != null) {
+			if (value instanceof FeatureReference) {
+				return ((FeatureReference) value).getURI();
+			}
+			return value.toString();
+		}
+		else {
+			Map<QName, PrimitiveValue> attributes = o.getAttributes();
+			if (attributes.containsKey(XLINK_HREF)) {
+				return attributes.get(XLINK_HREF).getAsText();
+			}
+		}
+		return null;
+	}
 
 }

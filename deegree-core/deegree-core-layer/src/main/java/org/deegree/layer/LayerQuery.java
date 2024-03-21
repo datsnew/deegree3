@@ -1,4 +1,3 @@
-//$HeadURL: svn+ssh://aschmitz@wald.intevation.org/deegree/base/trunk/resources/eclipse/files_template.xml $
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2011 by:
@@ -36,11 +35,16 @@
 package org.deegree.layer;
 
 import static java.lang.Integer.parseInt;
+import static java.util.Arrays.asList;
 import static org.deegree.commons.utils.MapUtils.DEFAULT_PIXEL_SIZE;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.deegree.commons.utils.Pair;
 import org.deegree.filter.OperatorFilter;
 import org.deegree.geometry.Envelope;
 import org.deegree.geometry.GeometryFactory;
@@ -49,159 +53,185 @@ import org.deegree.rendering.r2d.context.MapOptionsMaps;
 import org.deegree.style.StyleRef;
 
 /**
- * 
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * @author last edited by: $Author: stranger $
- * 
- * @version $Revision: $, $Date: $
  */
 public class LayerQuery {
 
-    private final Envelope envelope;
+	public static final String FILTERPROPERTY = "FILTERPROPERTY";
 
-    private final int width, height;
+	public static final String FILTERVALUE = "FILTERVALUE";
 
-    private final Map<String, String> parameters;
+	public static final String RADIUS = "RADIUS";
 
-    private int x, y, featureCount;
+	private final Envelope envelope;
 
-    private final StyleRef style;
+	private final int width, height;
 
-    private final OperatorFilter filter;
+	private final Map<String, String> parameters;
 
-    private double scale;
+	private int x, y, featureCount;
 
-    private final Map<String, List<?>> dimensions;
+	private final StyleRef style;
 
-    private double resolution;
+	private final OperatorFilter filter;
 
-    private final MapOptionsMaps options;
+	private double scale;
 
-    private Envelope queryBox;
+	private final Map<String, List<?>> dimensions;
 
-    private int layerRadius;
+	private double resolution;
 
-    /**
-     * @param envelope
-     * @param width
-     * @param height
-     * @param style
-     * @param filters
-     * @param parameters
-     * @param dimensions
-     * @param pixelSize
-     *            must be in meter, not mm
-     * @param options
-     * @param layerRadius
-     */
-    public LayerQuery( Envelope envelope, int width, int height, StyleRef style, OperatorFilter filter,
-                       Map<String, String> parameters, Map<String, List<?>> dimensions, double pixelSize,
-                       MapOptionsMaps options, Envelope queryBox ) {
-        this.envelope = envelope;
-        this.width = width;
-        this.height = height;
-        this.style = style;
-        this.filter = filter;
-        this.parameters = parameters;
-        this.dimensions = dimensions;
-        this.options = options;
-        this.queryBox = queryBox;
-        this.scale = RenderHelper.calcScaleWMS130( width, height, envelope, envelope.getCoordinateSystem(), pixelSize );
-        this.resolution = Utils.calcResolution( envelope, width, height );
-    }
+	private final MapOptionsMaps options;
 
-    public LayerQuery( Envelope envelope, int width, int height, int x, int y, int featureCount, OperatorFilter filter,
-                       StyleRef style, Map<String, String> parameters, Map<String, List<?>> dimensions,
-                       MapOptionsMaps options, Envelope queryBox, int layerRadius ) {
-        this.envelope = envelope;
-        this.width = width;
-        this.height = height;
-        this.x = x;
-        this.y = y;
-        this.featureCount = featureCount;
-        this.filter = filter;
-        this.style = style;
-        this.parameters = parameters;
-        this.dimensions = dimensions;
-        this.options = options;
-        this.queryBox = queryBox;
-        this.layerRadius = layerRadius;
-        this.scale = RenderHelper.calcScaleWMS130( width, height, envelope, envelope.getCoordinateSystem(),
-                                                   DEFAULT_PIXEL_SIZE );
-        this.resolution = Utils.calcResolution( envelope, width, height );
-    }
+	private Envelope queryBox;
 
-    public Envelope getEnvelope() {
-        return envelope;
-    }
+	private int layerRadius;
 
-    public int getWidth() {
-        return width;
-    }
+	/**
+	 * @param envelope
+	 * @param width
+	 * @param height
+	 * @param style
+	 * @param filters
+	 * @param parameters
+	 * @param dimensions
+	 * @param pixelSize must be in meter, not mm
+	 * @param options
+	 * @param layerRadius
+	 */
+	public LayerQuery(Envelope envelope, int width, int height, StyleRef style, OperatorFilter filter,
+			Map<String, String> parameters, Map<String, List<?>> dimensions, double pixelSize, MapOptionsMaps options,
+			Envelope queryBox) {
+		this.envelope = envelope;
+		this.width = width;
+		this.height = height;
+		this.style = style;
+		this.filter = filter;
+		this.parameters = parameters;
+		this.dimensions = dimensions;
+		this.options = options;
+		this.queryBox = queryBox;
+		this.scale = RenderHelper.calcScaleWMS130(width, height, envelope, envelope.getCoordinateSystem(), pixelSize);
+		this.resolution = Utils.calcResolution(envelope, width, height);
+	}
 
-    public int getHeight() {
-        return height;
-    }
+	public LayerQuery(Envelope envelope, int width, int height, int x, int y, int featureCount, OperatorFilter filter,
+			StyleRef style, Map<String, String> parameters, Map<String, List<?>> dimensions, MapOptionsMaps options,
+			Envelope queryBox, int layerRadius) {
+		this.envelope = envelope;
+		this.width = width;
+		this.height = height;
+		this.x = x;
+		this.y = y;
+		this.featureCount = featureCount;
+		this.filter = filter;
+		this.style = style;
+		this.parameters = parameters;
+		this.dimensions = dimensions;
+		this.options = options;
+		this.queryBox = queryBox;
+		this.layerRadius = layerRadius;
+		this.scale = RenderHelper.calcScaleWMS130(width, height, envelope, envelope.getCoordinateSystem(),
+				DEFAULT_PIXEL_SIZE);
+		this.resolution = Utils.calcResolution(envelope, width, height);
+	}
 
-    public Map<String, String> getParameters() {
-        return parameters;
-    }
+	public Envelope getEnvelope() {
+		return envelope;
+	}
 
-    public int getX() {
-        return x;
-    }
+	public int getWidth() {
+		return width;
+	}
 
-    public int getY() {
-        return y;
-    }
+	public int getHeight() {
+		return height;
+	}
 
-    public OperatorFilter getFilter() {
-        return filter;
-    }
+	public Map<String, String> getParameters() {
+		return parameters;
+	}
 
-    public StyleRef getStyle() {
-        return style;
-    }
+	public int getX() {
+		return x;
+	}
 
-    public Map<String, List<?>> getDimensions() {
-        return dimensions;
-    }
+	public int getY() {
+		return y;
+	}
 
-    public int getFeatureCount() {
-        return featureCount;
-    }
+	public OperatorFilter getFilter() {
+		return filter;
+	}
 
-    public double getScale() {
-        return scale;
-    }
+	public StyleRef getStyle() {
+		return style;
+	}
 
-    public double getResolution() {
-        return resolution;
-    }
+	public Map<String, List<?>> getDimensions() {
+		return dimensions;
+	}
 
-    public Envelope getQueryBox() {
-        return queryBox;
-    }
+	public int getFeatureCount() {
+		return featureCount;
+	}
 
-    public MapOptionsMaps getRenderingOptions() {
-        return options;
-    }
+	public double getScale() {
+		return scale;
+	}
 
-    public int getLayerRadius() {
-        return layerRadius;
-    }
+	public double getResolution() {
+		return resolution;
+	}
 
-    public Envelope calcClickBox( int radius ) {
-        radius = parameters.get( "RADIUS" ) == null ? radius : parseInt( parameters.get( "RADIUS" ) );
-        GeometryFactory fac = new GeometryFactory();
-        double dw = envelope.getSpan0() / width;
-        double dh = envelope.getSpan1() / height;
-        int r2 = radius / 2;
-        r2 = r2 <= 0 ? 1 : r2;
-        return fac.createEnvelope( new double[] { envelope.getMin().get0() + ( x - r2 ) * dw,
-                                                 envelope.getMax().get1() - ( y + r2 ) * dh },
-                                   new double[] { envelope.getMin().get0() + ( x + r2 ) * dw,
-                                                 envelope.getMax().get1() - ( y - r2 ) * dh },
-                                   envelope.getCoordinateSystem() );
-    }
+	public Envelope getQueryBox() {
+		return queryBox;
+	}
+
+	public MapOptionsMaps getRenderingOptions() {
+		return options;
+	}
+
+	public int getLayerRadius() {
+		return layerRadius;
+	}
+
+	public Envelope calcClickBox(int radius) {
+		radius = parameters.get(RADIUS) == null ? radius : parseInt(parameters.get(RADIUS));
+		GeometryFactory fac = new GeometryFactory();
+		double dw = envelope.getSpan0() / width;
+		double dh = envelope.getSpan1() / height;
+		int r2 = radius / 2;
+		r2 = r2 <= 0 ? 1 : r2;
+		return fac.createEnvelope(
+				new double[] { envelope.getMin().get0() + (x - r2) * dw, envelope.getMax().get1() - (y + r2) * dh },
+				new double[] { envelope.getMin().get0() + (x + r2) * dw, envelope.getMax().get1() - (y - r2) * dh },
+				envelope.getCoordinateSystem());
+	}
+
+	/**
+	 * Returns the additional request parameters used for filtering.
+	 * @return the property (first) and the values (second) to filter for,
+	 * <code>null</code> if at least one parameter is <code>null</code> or empty
+	 */
+	public Pair<String, List<String>> requestFilter() {
+		String filterProperty = parameters.get(FILTERPROPERTY);
+		String filterValue = parameters.get(FILTERVALUE);
+		if (filterProperty == null || filterProperty.isEmpty() || filterValue == null || filterValue.isEmpty())
+			return null;
+		List<String> filterValues = parseFilterValues(filterValue);
+		return new Pair<String, List<String>>(filterProperty, filterValues);
+	}
+
+	private List<String> parseFilterValues(String filterValue) {
+		List<String> filterValues = new ArrayList<String>();
+		String[] splittedFilterValue = filterValue.split(",");
+		for (String value : splittedFilterValue) {
+			String trimmedValue = value.trim();
+			if (!trimmedValue.isEmpty())
+				filterValues.add(trimmedValue);
+		}
+		return filterValues;
+	}
+
 }

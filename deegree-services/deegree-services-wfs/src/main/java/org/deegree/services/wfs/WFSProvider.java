@@ -56,40 +56,37 @@ import org.deegree.workspace.Workspace;
  *
  * @author <a href="mailto:schneider@occamlabs.de">Markus Schneider</a>
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * 
  * @since 3.4
  */
 public class WFSProvider extends OWSProvider {
 
-    protected static final ImplementationMetadata<WFSRequestType> IMPLEMENTATION_METADATA = new ImplementationMetadata<WFSRequestType>() {
-        {
-            supportedVersions = new Version[] { VERSION_100, VERSION_110, VERSION_200 };
-            handledNamespaces = new String[] { WFS_NS, WFS_200_NS };
-            handledRequests = WFSRequestType.class;
-            supportedConfigVersions = new Version[] { Version.parseVersion( "3.0.0" ), Version.parseVersion( "3.1.0" ),
-                                                     Version.parseVersion( "3.2.0" ), Version.parseVersion( "3.4.0" ) };
-            serviceName = new String[] { "WFS" };
-        }
-    };
+	protected static final ImplementationMetadata<WFSRequestType> IMPLEMENTATION_METADATA = new ImplementationMetadata<WFSRequestType>() {
+		{
+			supportedVersions = new Version[] { VERSION_100, VERSION_110, VERSION_200 };
+			handledNamespaces = new String[] { WFS_NS, WFS_200_NS };
+			handledRequests = WFSRequestType.class;
+			serviceName = new String[] { "WFS" };
+		}
+	};
 
-    @Override
-    public String getNamespace() {
-        return "http://www.deegree.org/services/wfs";
-    }
+	@Override
+	public String getNamespace() {
+		return "http://www.deegree.org/services/wfs";
+	}
 
-    @Override
-    public URL getSchema() {
-        return WFSProvider.class.getResource( "/META-INF/schemas/services/wfs/3.4.0/wfs_configuration.xsd" );
-    }
+	@Override
+	public URL getSchema() {
+		return WFSProvider.class.getResource("/META-INF/schemas/services/wfs/wfs_configuration.xsd");
+	}
 
-    @Override
-    public ImplementationMetadata<WFSRequestType> getImplementationMetadata() {
-        return IMPLEMENTATION_METADATA;
-    }
+	@Override
+	public ImplementationMetadata<WFSRequestType> getImplementationMetadata() {
+		return IMPLEMENTATION_METADATA;
+	}
 
-    @Override
-    public ResourceMetadata<OWS> createFromLocation( Workspace workspace, ResourceLocation<OWS> location ) {
-        return new WfsMetadata( workspace, location, this );
-    }
+	@Override
+	public ResourceMetadata<OWS> createFromLocation(Workspace workspace, ResourceLocation<OWS> location) {
+		return new WfsMetadata(workspace, location, this);
+	}
 
 }

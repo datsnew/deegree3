@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2012 by:
@@ -44,49 +43,40 @@ import org.apache.xerces.xs.XSElementDeclaration;
 import org.deegree.commons.tom.primitive.PrimitiveValue;
 
 /**
- * {@link TypedObjectNode} with an (XML) element semantic.
- * <p>
- * Chararacteristics:
+ * {@link TypedObjectNode} with an (XML) element semantic. Characteristics:
  * <ul>
  * <li>Element name</li>
  * <li>Attributes</li>
  * <li>Child nodes</li>
- * </p>
- * 
+ * </ul>
+ *
  * @author <a href="mailto:schneider@lat-lon.de">Markus Schneider</a>
  * @author <a href="mailto:schmitz@lat-lon.de">Andreas Schmitz</a>
- * @author last edited by: $Author$
- * 
- * @version $Revision$, $Date$
  */
 public interface ElementNode extends TypedObjectNode {
 
-    /**
-     * Returns the element's name.
-     * 
-     * @return element name, never <code>null</code>
-     */
-    public QName getName();
+	/**
+	 * Returns the element's name.
+	 * @return element name, never <code>null</code>
+	 */
+	public QName getName();
 
-    /**
-     * Returns the attributes of the node.
-     * 
-     * @return attributes of the node, never <code>null</code>
-     */
-    public Map<QName, PrimitiveValue> getAttributes();
+	/**
+	 * Returns the attributes of the node.
+	 * @return attributes of the node, never <code>null</code>
+	 */
+	public Map<QName, PrimitiveValue> getAttributes();
 
-    /**
-     * Returns the children of the node.
-     * 
-     * @return children of the node, never <code>null</code>
-     */
-    public List<TypedObjectNode> getChildren();
+	/**
+	 * Returns the children of the node.
+	 * @return children of the node, never <code>null</code>
+	 */
+	public List<TypedObjectNode> getChildren();
 
-    /**
-     * Returns the XML schema declaration of the element.
-     * 
-     * @return XML schema element declaration, can be <code>null</code>
-     */
-    public XSElementDeclaration getXSType();
-    
+	/**
+	 * Returns the XML schema declaration of the element.
+	 * @return XML schema element declaration, can be <code>null</code>
+	 */
+	public XSElementDeclaration getXSType();
+
 }

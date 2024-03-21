@@ -57,114 +57,112 @@ import org.deegree.theme.Themes;
  *
  * @author <a href="mailto:schneider@occamlabs.de">Markus Schneider</a>
  * @author <a href="mailto:reichhelm@grit.de">Stephan Reichhelm</a>
- *
  * @since 3.3
  */
 class LayerMetadataMerger {
 
-    private static final int QUERYABLE_DEFAULT_MASK = 1;
+	private static final int QUERYABLE_DEFAULT_MASK = 1;
 
-    private static final int QUERYABLE_DISABLED_MASK = 2;
+	private static final int QUERYABLE_DISABLED_MASK = 2;
 
-    private static final int QUERYABLE_ENABLED_MASK = 4;
+	private static final int QUERYABLE_ENABLED_MASK = 4;
 
-    /**
-     * Returns the combined layer metadata for the given theme/sublayers.
-     *
-     * @see LayerMetadata#merge(LayerMetadata)
-     *
-     * @param theme
-     *            must not be <code>null</code>
-     * @return combined layer metadata, never <code>null</code>
-     */
-    LayerMetadata merge( final Theme theme ) {
-        final LayerMetadata themeMetadata = theme.getLayerMetadata();
-        LayerMetadata layerMetadata = new LayerMetadata( null, null, null );
+	/**
+	 * Returns the combined layer metadata for the given theme/sublayers.
+	 *
+	 * @see LayerMetadata#merge(LayerMetadata)
+	 * @param theme must not be <code>null</code>
+	 * @return combined layer metadata, never <code>null</code>
+	 */
+	LayerMetadata merge(final Theme theme) {
+		final LayerMetadata themeMetadata = theme.getLayerMetadata();
+		LayerMetadata layerMetadata = new LayerMetadata(null, null, null);
 
-        int queryable = 0;
-        boolean opaque = false;
-        int cascaded = 0;
-        
-        for ( final Layer l : Themes.getAllLayers( theme ) ) {
-            queryable |= analyseQueryable( l.getMetadata() );
-            if ( checkIfOpaque( l.getMetadata() ) )
-                opaque = true;
-            if ( checkIfLargerCascadedValue( cascaded, l.getMetadata() ) )
-                cascaded = l.getMetadata().getCascaded();
-            layerMetadata.merge( l.getMetadata() );
-        }
-        themeMetadata.merge( layerMetadata );
-        adjustMapOptions( themeMetadata, queryable, opaque, cascaded );
-        return themeMetadata;
-    }
+		int queryable = 0;
+		boolean opaque = false;
+		int cascaded = 0;
 
-    /**
-     * Returns the combined (least restrictive) scale denominators for the given theme/sublayers.
-     *
-     * @param theme
-     *            must not be <code>null</code>
-     * @return combined scale denomiators, first value is min, second is max, never <code>null</code>
-     */
-    DoublePair mergeScaleDenominators( final Theme theme ) {
-        Double min = POSITIVE_INFINITY;
-        Double max = NEGATIVE_INFINITY;
-        if ( theme.getLayerMetadata() != null && theme.getLayerMetadata().getScaleDenominators() != null ) {
-            final DoublePair themeScales = theme.getLayerMetadata().getScaleDenominators();
-            if ( !themeScales.first.isInfinite() ) {
-                min = themeScales.first;
-            }
-            if ( !themeScales.second.isInfinite() ) {
-                max = themeScales.second;
-            }
-        }
-        final List<Layer> layers = Themes.getAllLayers( theme );
-        if ( layers != null ) {
-            for ( final Layer layer : layers ) {
-                if ( layer.getMetadata() != null ) {
-                    final DoublePair layerScales = layer.getMetadata().getScaleDenominators();
-                    if ( layerScales != null ) {
-                        min = Math.min( min, layerScales.first );
-                        max = Math.max( max, layerScales.second );
-                    }
-                }
-            }
-        }
-        return new DoublePair( min, max );
-    }
+		for (final Layer l : Themes.getAllLayers(theme)) {
+			queryable |= analyseQueryable(l.getMetadata());
+			if (checkIfOpaque(l.getMetadata()))
+				opaque = true;
+			if (checkIfLargerCascadedValue(cascaded, l.getMetadata()))
+				cascaded = l.getMetadata().getCascaded();
+			layerMetadata.merge(l.getMetadata());
+		}
+		themeMetadata.merge(layerMetadata);
+		adjustMapOptions(themeMetadata, queryable, opaque, cascaded);
+		return themeMetadata;
+	}
 
-    private int analyseQueryable( LayerMetadata m ) {
-        if ( m.getMapOptions() == null )
-            return QUERYABLE_DEFAULT_MASK;
+	/**
+	 * Returns the combined (least restrictive) scale denominators for the given
+	 * theme/sublayers.
+	 * @param theme must not be <code>null</code>
+	 * @return combined scale denomiators, first value is min, second is max, never
+	 * <code>null</code>
+	 */
+	DoublePair mergeScaleDenominators(final Theme theme) {
+		Double min = POSITIVE_INFINITY;
+		Double max = NEGATIVE_INFINITY;
+		if (theme.getLayerMetadata() != null && theme.getLayerMetadata().getScaleDenominators() != null) {
+			final DoublePair themeScales = theme.getLayerMetadata().getScaleDenominators();
+			if (!themeScales.first.isInfinite()) {
+				min = themeScales.first;
+			}
+			if (!themeScales.second.isInfinite()) {
+				max = themeScales.second;
+			}
+		}
+		final List<Layer> layers = Themes.getAllLayers(theme);
+		if (layers != null) {
+			for (final Layer layer : layers) {
+				if (layer.getMetadata() != null) {
+					final DoublePair layerScales = layer.getMetadata().getScaleDenominators();
+					if (layerScales != null) {
+						min = Math.min(min, layerScales.first);
+						max = Math.max(max, layerScales.second);
+					}
+				}
+			}
+		}
+		return new DoublePair(min, max);
+	}
 
-        int r = m.getMapOptions().getFeatureInfoRadius();
+	private int analyseQueryable(LayerMetadata m) {
+		if (m.getMapOptions() == null)
+			return QUERYABLE_DEFAULT_MASK;
 
-        if ( r < 0 )
-            return QUERYABLE_DEFAULT_MASK;
-        else if ( r == 0 )
-            return QUERYABLE_DISABLED_MASK;
-        else
-            return QUERYABLE_ENABLED_MASK;
-    }
+		int r = m.getMapOptions().getFeatureInfoRadius();
 
-    private boolean checkIfOpaque( LayerMetadata metadata ) {
-        return metadata != null && metadata.getMapOptions() != null && metadata.getMapOptions().isOpaque();
-    }
+		if (r < 0)
+			return QUERYABLE_DEFAULT_MASK;
+		else if (r == 0)
+			return QUERYABLE_DISABLED_MASK;
+		else
+			return QUERYABLE_ENABLED_MASK;
+	}
 
-    private boolean checkIfLargerCascadedValue( int cascaded, LayerMetadata metadata ) {
-        return metadata != null && cascaded < metadata.getCascaded();
-    }
+	private boolean checkIfOpaque(LayerMetadata metadata) {
+		return metadata != null && metadata.getMapOptions() != null && metadata.getMapOptions().isOpaque();
+	}
 
-    private void adjustMapOptions( LayerMetadata themeMetadata, int queryable, boolean opaque, int cascaded ) {
-        if ( themeMetadata.getMapOptions() == null ) {
-            themeMetadata.setMapOptions( new MapOptions( null, null, null, -1, -1 ) );
-        }
-        if ( queryable == QUERYABLE_DISABLED_MASK ) {
-            themeMetadata.getMapOptions().setFeatureInfoRadius( 0 );
-        } else {
-            themeMetadata.getMapOptions().setFeatureInfoRadius( -1 );
-        }
-        themeMetadata.getMapOptions().setOpaque( opaque );
-        themeMetadata.setCascaded( cascaded );
-    }
+	private boolean checkIfLargerCascadedValue(int cascaded, LayerMetadata metadata) {
+		return metadata != null && cascaded < metadata.getCascaded();
+	}
+
+	private void adjustMapOptions(LayerMetadata themeMetadata, int queryable, boolean opaque, int cascaded) {
+		if (themeMetadata.getMapOptions() == null) {
+			themeMetadata.setMapOptions(new MapOptions.Builder().build());
+		}
+		if (queryable == QUERYABLE_DISABLED_MASK) {
+			themeMetadata.getMapOptions().setFeatureInfoRadius(0);
+		}
+		else {
+			themeMetadata.getMapOptions().setFeatureInfoRadius(-1);
+		}
+		themeMetadata.getMapOptions().setOpaque(opaque);
+		themeMetadata.setCascaded(cascaded);
+	}
 
 }

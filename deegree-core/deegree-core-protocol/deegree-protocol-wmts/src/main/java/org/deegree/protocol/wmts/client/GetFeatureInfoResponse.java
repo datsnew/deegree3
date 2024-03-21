@@ -1,4 +1,3 @@
-//$HeadURL$
 /*----------------------------------------------------------------------------
  This file is part of deegree, http://deegree.org/
  Copyright (C) 2001-2012 by:
@@ -41,62 +40,66 @@
  ----------------------------------------------------------------------------*/
 package org.deegree.protocol.wmts.client;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
+
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.xml.stream.XMLStreamException;
 
 import org.deegree.commons.ows.exception.OWSException;
 import org.deegree.feature.FeatureCollection;
-import org.deegree.featureinfo.parsing.FeatureInfoParser;
+import org.deegree.featureinfo.parsing.DefaultFeatureInfoParser;
 import org.deegree.protocol.ows.exception.OWSExceptionReport;
 import org.deegree.protocol.ows.http.OwsHttpResponse;
 import org.deegree.protocol.wmts.ops.GetFeatureInfo;
 
 /**
  * The server response to a GetFeatureInfo request.
- * 
+ *
  * @author <a href="mailto:schmitz@occamlabs.de">Andreas Schmitz</a>
- * @author last edited by: $Author: stranger $
- * 
- * @version $Revision: $, $Date: $
  */
 public class GetFeatureInfoResponse {
 
-    private final OwsHttpResponse rawResponse;
+	private final OwsHttpResponse rawResponse;
 
-    private GetFeatureInfo request;
+	private final DefaultFeatureInfoParser featureInfoParser = new DefaultFeatureInfoParser();
 
-    GetFeatureInfoResponse( OwsHttpResponse rawResponse, GetFeatureInfo request ) {
-        this.rawResponse = rawResponse;
-        this.request = request;
-    }
+	private GetFeatureInfo request;
 
-    public FeatureCollection getFeatures()
-                            throws OWSException, OWSExceptionReport {
-        try {
-            return FeatureInfoParser.parseAsFeatureCollection( rawResponse.getAsXMLStream(), request.getLayer() );
-        } catch ( XMLStreamException e ) {
-            throw new OWSException( "Remote WMTS response was not recognized as feature collection: "
-                                    + e.getLocalizedMessage(), e, OWSException.NO_APPLICABLE_CODE );
-        }
-    }
+	GetFeatureInfoResponse(OwsHttpResponse rawResponse, GetFeatureInfo request) {
+		this.rawResponse = rawResponse;
+		this.request = request;
+	}
 
-    /**
-     * Provides access to the raw server response.
-     * 
-     * @return the raw server response, never <code>null</code>
-     */
-    public OwsHttpResponse getAsRawResponse() {
-        return rawResponse;
-    }
+	public FeatureCollection getFeatures() throws OWSException, OWSExceptionReport {
+		InputStream featureInfo = rawResponse.getAsBinaryStream();
+		try {
+			return featureInfoParser.parseAsFeatureCollection(featureInfo, request.getLayer());
+		}
+		catch (XMLStreamException e) {
+			throw new OWSException(
+					"Remote WMTS response was not recognized as feature collection: " + e.getLocalizedMessage(), e,
+					OWSException.NO_APPLICABLE_CODE);
+		}
+		finally {
+			closeQuietly(featureInfo);
+		}
+	}
 
-    /**
-     * 
-     * @throws IOException
-     */
-    public void close()
-                            throws IOException {
-        rawResponse.close();
-    }
+	/**
+	 * Provides access to the raw server response.
+	 * @return the raw server response, never <code>null</code>
+	 */
+	public OwsHttpResponse getAsRawResponse() {
+		return rawResponse;
+	}
+
+	/**
+	 * @throws IOException
+	 */
+	public void close() throws IOException {
+		rawResponse.close();
+	}
 
 }
