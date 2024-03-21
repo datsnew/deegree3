@@ -4,19 +4,26 @@
 # GeoSynk
 
 Start at this branch, then pull from desired tag:
+
 ```git pull upstream --tags deegree-3.5.6```
+
+Fix merge conflicts if any are present.
 
 
 Run maven via Docker, replacing LOCAL with deegree-folder:
+
 ```docker run --rm -it -v LOCAL:/data maven bash```
 
 Go to /data and build:
+
 ```mvn install -Dspring-javaformat.skip=true -DskipTests```
 
 Build docker:
+
 ```docker build --pull --rm -f "Dockerfile" -t deegreedocker:latest "."```
 
 Run deegree from docker, replacing WORKSPACE-FOLDER with local workspace folder if you have one:
+
 ```docker run --rm -d -p 8080:8080/tcp -v WORKSPACE-FOLDER:/root/.deegree deegreedocker:latest```
 
 Open deegree user-interface:
