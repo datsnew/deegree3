@@ -1,6 +1,29 @@
 | Main branch                                                                                                                                                                 | Release   | OpenHUB       |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --------- | ------------- |
 | [![Main Build Status](https://buildserver.deegree.org/buildStatus/icon?job=deegree-3.5-release-pipeline)](https://buildserver.deegree.org/job/deegree-3.5-release-pipeline) | [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/deegree/deegree3?sort=semver)](https://github.com/deegree/deegree3/releases/latest) | [![OpenHUB](https://www.openhub.net/p/deegree3/widgets/project_thin_badge.gif)](https://www.openhub.net/p/deegree3) |
+# GeoSynk
+
+Start at this branch, then pull from desired tag:
+```git pull upstream --tags deegree-3.5.6```
+
+
+Run maven via Docker, replacing LOCAL with deegree-folder:
+```docker run --rm -it -v LOCAL:/data maven bash```
+
+Go to /data and build:
+```mvn install -Dspring-javaformat.skip=true -DskipTests```
+
+Build docker:
+```docker build --pull --rm -f "Dockerfile" -t deegreedocker:latest "."```
+
+Run deegree from docker, replacing WORKSPACE-FOLDER with local workspace folder if you have one:
+```docker run --rm -d -p 8080:8080/tcp -v WORKSPACE-FOLDER:/root/.deegree deegreedocker:latest```
+
+Open deegree user-interface:
+```http://localhost:8080/deegree-webservices/console/workspace/index.xhtml```
+
+
+
 # deegree webservices
 deegree is open source software for spatial data infrastructures and the geospatial web. deegree includes components for geospatial data management, including data access, visualization, discovery and security. Open standards are at the heart of deegree. The software is built on the standards of the Open Geospatial Consortium (OGC) and the ISO Technical Committee 211.
 
