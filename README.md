@@ -29,6 +29,7 @@ Run deegree from docker, replacing WORKSPACE-FOLDER with local workspace folder 
 ```docker run --rm -d -p 8080:8080/tcp -v WORKSPACE-FOLDER:/root/.deegree deegreedocker:latest```
 
 Open deegree user-interface:
+
 ```http://localhost:8080/deegree-webservices/console/workspace/index.xhtml```
 
 
