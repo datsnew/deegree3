@@ -16,6 +16,8 @@ Run maven via Docker, replacing LOCAL with deegree-folder:
 
 Go to /data and build:
 
+```cd /data```
+
 ```mvn install -Dspring-javaformat.skip=true -DskipTests```
 
 Build docker:
