@@ -108,6 +108,7 @@ public class MSSQLGeometryConverter implements GeometryParticleConverter {
 					// hur hur, not using cp1252 any more, are we?
 					sqlValue = new String((byte[]) sqlValue, "UTF-16LE");
 				}
+
 				return new WKTReader(crs).read(sqlValue.toString());
 			}
 		}
@@ -133,7 +134,8 @@ public class MSSQLGeometryConverter implements GeometryParticleConverter {
 			}
 		}
 		else {
-			stmt.setString(paramIndex, WKTWriter.write(particle));
+            // Added Replace UTF minus sign with hyphen-minus in particle
+			stmt.setString(paramIndex, WKTWriter.write(particle).replace('\u2212', '\u002D'));
 		}
 	}
 
