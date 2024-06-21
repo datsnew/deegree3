@@ -134,8 +134,10 @@ public class MSSQLGeometryConverter implements GeometryParticleConverter {
 			}
 		}
 		else {
-            // Added Replace UTF minus sign with hyphen-minus in particle
+            // Added Replace UTF minus sign with hyphen-minus in particle due to MSSQL not beeing able to parse the minus sign.
 			stmt.setString(paramIndex, WKTWriter.write(particle).replace('\u2212', '\u002D'));
+            // can be handled with java parameters "-Duser.country=GB -Duser.language=en"  
+			// stmt.setString(paramIndex, WKTWriter.write(particle));
 		}
 	}
 
